@@ -1,0 +1,63 @@
+name: Testar dados de uma noticia
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler dados da noticia da ANACAMP
+        run: |
+          python3 - <<'PY'
+          from html import unescape
+          from html.parser import HTMLParser
+          from urllib.request import Request, urlopen
+
+          URL = (
+              "https://anacamp.com/noticia/"
+              "acampa-ms-inaugura-ponto-de-apoio-em-porto-murtinho-"
+              "com-participacao-da-anacamp/"
+          )
+
+          class Metadados(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.dados = {}
+
+              def handle_starttag(self, tag, attrs):
+                  if tag != "meta":
+                      return
+                  atributos = dict(attrs)
+                  nome = atributos.get("property") or atributos.get("name")
+                  if nome in (
+                      "description",
+                      "og:description",
+                      "article:published_time"
+                  ):
+                      self.dados[nome] = unescape(
+                          atributos.get("content", "")
+                      ).strip()
+
+          pedido = Request(
+              URL,
+              headers={"User-Agent": "MotorhomeEmPauta/0.1 (teste)"}
+          )
+
+          with urlopen(pedido, timeout=20) as resposta:
+              pagina = resposta.read(1000000).decode(
+                  "utf-8", errors="replace"
+              )
+              print("Status HTTP:", resposta.status)
+
+          leitor = Metadados()
+          leitor.feed(pagina)
+
+          for campo in (
+              "article:published_time",
+              "description",
+              "og:description"
+          ):
+              valor = leitor.dados.get(campo, "Nao encontrado")
+              print(campo + ":", valor[:400])
+          PY
