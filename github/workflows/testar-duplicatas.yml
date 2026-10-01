@@ -1,0 +1,46 @@
+name: Testar noticias repetidas
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+
+      - name: Verificar link repetido
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          registros = json.loads(
+              Path("noticias.json").read_text(encoding="utf-8")
+          )
+
+          if not isinstance(registros, list):
+              raise SystemExit("Erro: noticias.json deve conter uma lista.")
+
+          link = (
+              "https://anacamp.com/noticia/"
+              "acampa-ms-inaugura-ponto-de-apoio-em-porto-murtinho-"
+              "com-participacao-da-anacamp/"
+          )
+
+          links_conhecidos = {
+              item["link"]
+              for item in registros
+              if isinstance(item, dict) and "link" in item
+          }
+
+          print("Registros salvos:", len(registros))
+          print("Primeira verificacao:",
+                "repetida" if link in links_conhecidos else "nova")
+
+          links_conhecidos.add(link)
+
+          print("Segunda verificacao:",
+                "repetida" if link in links_conhecidos else "nova")
+          PY
