@@ -1,0 +1,17 @@
+name: Executar coletor em teste
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+
+      - name: Executar coletor sem publicar
+        run: python3 coletor.py
