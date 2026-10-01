@@ -1,0 +1,37 @@
+name: Testar conexao com IA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar biblioteca do Gemini
+        run: python3 -m pip install google-genai
+
+      - name: Fazer uma pergunta de teste
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from google import genai
+
+          if not os.getenv("GEMINI_API_KEY"):
+              raise SystemExit("Chave GEMINI_API_KEY nao encontrada.")
+
+          client = genai.Client()
+          resposta = client.models.generate_content(
+              model="gemini-3.8-flash",
+              contents=(
+                  "Responda em portugues, em uma frase curta: "
+                  "qual e o tema de um site chamado Motorhome em Pauta?"
+              ),
+          )
+
+          print("Resposta da IA:", resposta.text)
+          PY
