@@ -1,0 +1,117 @@
+name: Testar coleta real sem publicar
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+
+      - name: Comparar noticias da ANACAMP
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from datetime import datetime
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urljoin, urlparse
+          from urllib.request import Request, urlopen
+
+          BASE = "https://anacamp.com/"
+
+          class LeitorDeLinks(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.url_atual = None
+                  self.texto_atual = []
+                  self.noticias = []
+
+              def handle_starttag(self, tag, attrs):
+                  if tag == "a" and self.url_atual is None:
+                      href = dict(attrs).get("href", "")
+                      url = urljoin(BASE, href)
+                      partes = urlparse(url)
+                      if (partes.netloc == "anacamp.com"
+                              and partes.path.startswith("/noticia/")):
+                          self.url_atual = url
+                          self.texto_atual = []
+
+              def handle_data(self, data):
+                  if self.url_atual:
+                      self.texto_atual.append(data)
+
+              def handle_endtag(self, tag):
+                  if tag == "a" and self.url_atual:
+                      titulo = " ".join(" ".join(self.texto_atual).split())
+                      if titulo:
+                          self.noticias.append((titulo, self.url_atual))
+                      self.url_atual = None
+                      self.texto_atual = []
+
+          registros = json.loads(
+              Path("noticias.json").read_text(encoding="utf-8")
+          )
+          if not isinstance(registros, list):
+              raise SystemExit("Erro: noticias.json deve conter uma lista.")
+
+          links_salvos = {
+              item["link"]
+              for item in registros
+              if isinstance(item, dict) and "link" in item
+          }
+
+          pedido = Request(
+              BASE,
+              headers={"User-Agent": "MotorhomeEmPauta/0.1 (teste de coleta)"}
+          )
+          with urlopen(pedido, timeout=20) as resposta:
+              pagina = resposta.read(1000000).decode(
+                  "utf-8", errors="replace"
+              )
+
+          leitor = LeitorDeLinks()
+          leitor.feed(pagina)
+
+          noticias_unicas = list(dict.fromkeys(leitor.noticias))
+          print("Noticias encontradas:", len(noticias_unicas))
+          print("Registros salvos:", len(registros))
+
+          novas = 0
+          repetidas = 0
+
+          for texto, link in noticias_unicas:
+              encontrado = re.match(
+                  r"^(\d{2}/\d{2}/\d{4})\s+(.+)$", texto
+              )
+              if not encontrado:
+                  print("IGNORADA - data nao identificada:", texto)
+                  continue
+
+              data_texto, titulo = encontrado.groups()
+              try:
+                  datetime.strptime(data_texto, "%d/%m/%Y")
+              except ValueError:
+                  print("IGNORADA - data invalida:", texto)
+                  continue
+
+              if link in links_salvos:
+                  repetidas += 1
+                  situacao = "REPETIDA"
+              else:
+                  novas += 1
+                  situacao = "NOVA"
+
+              print(situacao, "|", data_texto, "|", titulo)
+              print("Link:", link)
+
+          print("Total de novas:", novas)
+          print("Total de repetidas:", repetidas)
+          print("Teste concluido: nenhum arquivo foi alterado.")
+          PY
