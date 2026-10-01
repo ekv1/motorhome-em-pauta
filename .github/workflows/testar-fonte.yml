@@ -1,0 +1,40 @@
+name: Testar acesso a fonte
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar pagina da ANACAMP
+        run: |
+          python3 - <<'PY'
+          import html
+          import re
+          from urllib.request import Request, urlopen
+
+          url = "https://anacamp.com/"
+          request = Request(
+              url,
+              headers={"User-Agent": "MotorhomeEmPauta/0.1 (teste de acesso)"}
+          )
+
+          with urlopen(request, timeout=20) as response:
+              page = response.read(500000).decode("utf-8", errors="replace")
+              print("Status HTTP:", response.status)
+
+          match = re.search(
+              r"<title[^>]*>(.*?)</title>",
+              page,
+              flags=re.IGNORECASE | re.DOTALL
+          )
+
+          if match:
+              title = html.unescape(
+                  re.sub(r"\s+", " ", match.group(1)).strip()
+              )
+              print("Titulo da pagina:", title)
+          else:
+              print("Pagina acessada, mas o titulo nao foi encontrado.")
+          PY
