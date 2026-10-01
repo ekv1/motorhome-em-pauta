@@ -1,0 +1,69 @@
+name: Testar extracao de noticias
+
+on:
+  workflow_dispatch:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Encontrar titulos e links da ANACAMP
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlparse
+          from urllib.request import Request, urlopen
+
+          BASE = "https://anacamp.com/"
+
+          class LeitorDeLinks(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.url_atual = None
+                  self.texto_atual = []
+                  self.noticias = []
+
+              def handle_starttag(self, tag, attrs):
+                  if tag == "a" and self.url_atual is None:
+                      href = dict(attrs).get("href", "")
+                      url = urljoin(BASE, href)
+                      partes = urlparse(url)
+                      if (partes.netloc == "anacamp.com"
+                              and partes.path.startswith("/noticia/")):
+                          self.url_atual = url
+                          self.texto_atual = []
+
+              def handle_data(self, data):
+                  if self.url_atual:
+                      self.texto_atual.append(data)
+
+              def handle_endtag(self, tag):
+                  if tag == "a" and self.url_atual:
+                      titulo = " ".join(" ".join(self.texto_atual).split())
+                      if titulo:
+                          self.noticias.append((titulo, self.url_atual))
+                      self.url_atual = None
+                      self.texto_atual = []
+
+          pedido = Request(
+              BASE,
+              headers={"User-Agent": "MotorhomeEmPauta/0.1 (teste de coleta)"}
+          )
+          with urlopen(pedido, timeout=20) as resposta:
+              pagina = resposta.read(1000000).decode(
+                  "utf-8", errors="replace"
+              )
+
+          leitor = LeitorDeLinks()
+          leitor.feed(pagina)
+
+          noticias_unicas = list(dict.fromkeys(leitor.noticias))
+          print("Noticias encontradas:", len(noticias_unicas))
+
+          for titulo, url in noticias_unicas[:5]:
+              print("Titulo:", titulo)
+              print("Link:", url)
+
+          if not noticias_unicas:
+              raise SystemExit("Nenhum link de noticia encontrado.")
+          PY
