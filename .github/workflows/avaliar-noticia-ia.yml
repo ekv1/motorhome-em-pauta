@@ -70,7 +70,8 @@ jobs:
               raise SystemExit(
                   "Titulo ou descricao ausente: nada foi enviado a IA."
               )
-
+          print("Titulo enviado a IA:", titulo)
+          print("Descricao enviada a IA:", descricao)
           prompt = f"""
           Voce avalia uma noticia para o site Motorhome em Pauta.
           Use SOMENTE o titulo e a descricao fornecidos abaixo.
