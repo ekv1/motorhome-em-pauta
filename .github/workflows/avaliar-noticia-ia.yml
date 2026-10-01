@@ -1,0 +1,101 @@
+name: Avaliar uma noticia com IA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  avaliar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar biblioteca do Gemini
+        run: python3 -m pip install google-genai
+
+      - name: Avaliar noticia sem publicar
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from html import unescape
+          from html.parser import HTMLParser
+          from urllib.request import Request, urlopen
+          from google import genai
+
+          URL = (
+              "https://anacamp.com/noticia/"
+              "acampa-ms-inaugura-ponto-de-apoio-em-porto-murtinho-"
+              "com-participacao-da-anacamp/"
+          )
+
+          class Metadados(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.dados = {}
+
+              def handle_starttag(self, tag, attrs):
+                  if tag != "meta":
+                      return
+                  atributos = dict(attrs)
+                  nome = atributos.get("property") or atributos.get("name")
+                  if nome in ("og:title", "og:description", "description"):
+                      self.dados[nome] = unescape(
+                          atributos.get("content", "")
+                      ).strip()
+
+          if not os.getenv("GEMINI_API_KEY"):
+              raise SystemExit("Chave GEMINI_API_KEY nao encontrada.")
+
+          pedido = Request(
+              URL,
+              headers={"User-Agent": "MotorhomeEmPauta/0.1 (teste)"}
+          )
+          with urlopen(pedido, timeout=20) as resposta:
+              pagina = resposta.read(1000000).decode(
+                  "utf-8", errors="replace"
+              )
+
+          leitor = Metadados()
+          leitor.feed(pagina)
+
+          titulo = leitor.dados.get("og:title", "")
+          descricao = (
+              leitor.dados.get("og:description")
+              or leitor.dados.get("description", "")
+          )
+
+          if not titulo or not descricao:
+              raise SystemExit(
+                  "Titulo ou descricao ausente: nada foi enviado a IA."
+              )
+
+          prompt = f"""
+          Voce avalia uma noticia para o site Motorhome em Pauta.
+          Use SOMENTE o titulo e a descricao fornecidos abaixo.
+          Nao invente datas, precos, horarios, vagas ou servicos.
+          Nao afirme que o local foi verificado pelo nosso site.
+
+          Responda em portugues com exatamente tres linhas:
+          Relevancia: SIM ou NAO
+          Motivo: uma frase curta
+          Resumo: uma frase curta baseada apenas na fonte
+
+          Titulo: {titulo}
+          Descricao: {descricao}
+          """
+
+          resposta = genai.Client().models.generate_content(
+              model="gemini-3.8-flash",
+              contents=prompt,
+          )
+
+          if not resposta.text:
+              raise SystemExit("A IA nao retornou texto.")
+
+          print("Fonte:", URL)
+          print("Avaliacao da IA:")
+          print(resposta.text)
+          print("TESTE: nenhum arquivo foi alterado ou publicado.")
+          PY
