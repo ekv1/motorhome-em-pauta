@@ -86,10 +86,11 @@ jobs:
           Descricao: {descricao}
           """
 
-          resposta = genai.Client().models.generate_content(
-              model="gemini-3.8-flash",
-              contents=prompt,
-          )
+          with genai.Client() as client:
+              resposta = client.models.generate_content(
+                  model="gemini-3.8-flash",
+                  contents=prompt,
+              )
 
           if not resposta.text:
               raise SystemExit("A IA nao retornou texto.")
