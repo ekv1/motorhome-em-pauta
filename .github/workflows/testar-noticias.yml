@@ -60,8 +60,30 @@ jobs:
           noticias_unicas = list(dict.fromkeys(leitor.noticias))
           print("Noticias encontradas:", len(noticias_unicas))
 
+          from datetime import datetime
+          import re
+
           for titulo, url in noticias_unicas[:5]:
-              print("Titulo:", titulo)
+              encontrado = re.match(r"^(\d{2}/\d{2}/\d{4})\s+(.+)$", titulo)
+
+              if not encontrado:
+                  print("Data: nao identificada")
+                  print("Titulo:", titulo)
+                  print("Link:", url)
+                  continue
+
+              data_texto, titulo_limpo = encontrado.groups()
+
+              try:
+                  data = datetime.strptime(data_texto, "%d/%m/%Y")
+              except ValueError:
+                  print("Data: invalida")
+                  print("Titulo:", titulo_limpo)
+                  print("Link:", url)
+                  continue
+
+              print("Data:", data.strftime("%d/%m/%Y"))
+              print("Titulo:", titulo_limpo)
               print("Link:", url)
 
           if not noticias_unicas:
