@@ -24,7 +24,7 @@ MACAMP_FEED = (
 ARQUIVO_PUBLICADOS = Path("noticias.json")
 ARQUIVO_RASCUNHOS = Path("rascunhos-coletor.json")
 
-MODELO_IA = "llama-3.3-70b-versatile"
+MODELO_IA = "openai/gpt-oss-20b"
 IDADE_MAXIMA_DIAS = 14
 FUSO = ZoneInfo("America/Sao_Paulo")
 
@@ -297,7 +297,7 @@ def sugerir_categoria(titulo):
 
 
 def diagnosticar_erro_api(erro):
-    """Mostra somente campos controlados; nunca imprime a chave."""
+    """Mostra campos controlados; nao imprime a chave."""
     print("Etapa com falha: chamada a API do Groq")
     print("Tipo do erro:", type(erro).__name__)
     print(
@@ -311,8 +311,6 @@ def diagnosticar_erro_api(erro):
         detalhe = corpo.get("error")
 
         if isinstance(detalhe, dict):
-            # O codigo e o tipo ajudam a diagnosticar sem expor
-            # uma mensagem livre potencialmente sensivel.
             for campo in ("code", "type"):
                 valor = detalhe.get(campo)
 
