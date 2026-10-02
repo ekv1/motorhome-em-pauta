@@ -61,6 +61,7 @@ jobs:
           categorias_exibidas = (
               "Últimas notícias",
               "Histórias e comunidade",
+              "Guias e vida a bordo",
           )
 
           vistos_nesta_execucao = set()
