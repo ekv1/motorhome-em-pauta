@@ -14,12 +14,12 @@ jobs:
       - name: Ler arquivos do repositorio
         uses: actions/checkout@v6
 
-      - name: Instalar biblioteca do Gemini
-        run: python3 -m pip install google-genai
+      - name: Instalar biblioteca do Groq
+        run: python3 -m pip install groq
 
       - name: Executar coletor sem publicar
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set -o pipefail
           python3 coletor.py | tee resultado-coletor.txt
