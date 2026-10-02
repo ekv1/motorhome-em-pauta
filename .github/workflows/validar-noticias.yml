@@ -1,0 +1,85 @@
+name: Validar noticias publicadas
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+
+      - name: Conferir noticias.json sem alterar arquivos
+        run: |
+          python3 - <<'PY'
+          import json
+          from datetime import datetime
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          caminho = Path("noticias.json")
+          registros = json.loads(caminho.read_text(encoding="utf-8"))
+
+          if not isinstance(registros, list):
+              raise SystemExit("ERRO: noticias.json deve conter uma lista.")
+
+          campos = ("titulo", "data", "resumo", "fonte", "link")
+          categorias = (
+              "Últimas notícias",
+              "Histórias e comunidade",
+          )
+          links_vistos = set()
+          erros = []
+
+          for numero, item in enumerate(registros, start=1):
+              if not isinstance(item, dict):
+                  erros.append(f"Registro {numero}: nao e um objeto.")
+                  continue
+
+              for campo in campos:
+                  valor = item.get(campo)
+                  if not isinstance(valor, str) or not valor.strip():
+                      erros.append(
+                          f"Registro {numero}: campo {campo} ausente ou vazio."
+                      )
+
+              categoria = item.get("categoria_sugerida")
+
+              # O primeiro cartao foi publicado antes de existir categoria.
+              if categoria is not None and categoria not in categorias:
+                  erros.append(
+                      f"Registro {numero}: categoria nao exibida pelo site."
+                  )
+
+              data = item.get("data")
+              if isinstance(data, str) and data.strip():
+                  try:
+                      datetime.strptime(data, "%d/%m/%Y")
+                  except ValueError:
+                      erros.append(f"Registro {numero}: data invalida.")
+
+              link = item.get("link")
+              if isinstance(link, str) and link.strip():
+                  endereco = urlparse(link)
+                  if endereco.scheme != "https" or not endereco.netloc:
+                      erros.append(f"Registro {numero}: link invalido.")
+                  if link in links_vistos:
+                      erros.append(f"Registro {numero}: link duplicado.")
+                  links_vistos.add(link)
+
+          print("Registros conferidos:", len(registros))
+          print("Links distintos:", len(links_vistos))
+
+          if erros:
+              for erro in erros:
+                  print(erro)
+              raise SystemExit("VALIDACAO FALHOU: confira noticias.json.")
+
+          print("VALIDACAO PASSOU: formato e duplicatas conferidos.")
+          print("Nenhum arquivo foi alterado. Gemini nao foi usado.")
+          PY
