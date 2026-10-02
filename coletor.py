@@ -1,12 +1,13 @@
 import json
 import os
 import re
-from datetime import date, datetime
+from datetime import datetime
 from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 from google import genai
 
@@ -15,6 +16,7 @@ FONTE = "https://anacamp.com/"
 ARQUIVO_REGISTROS = Path("noticias.json")
 MODELO_IA = "gemini-3.8-flash"
 MAXIMO_AVALIACOES = 1
+IDADE_MAXIMA_DIAS = 14
 
 # Um termo no titulo seleciona uma candidata.
 # Isso nao significa aprovacao para publicacao.
@@ -156,19 +158,31 @@ def analisar(texto, link, links_salvos):
     data_texto, titulo = encontrado.groups()
 
     try:
-        datetime.strptime(data_texto, "%d/%m/%Y")
+        data_publicacao = datetime.strptime(
+            data_texto, "%d/%m/%Y"
+        ).date()
     except ValueError:
         return "IGNORADA: data invalida", titulo, link
 
     if link in links_salvos:
         situacao = "REPETIDA"
-    elif any(
-        termo in titulo.casefold()
-        for termo in TERMOS_RELEVANTES
-    ):
-        situacao = "CANDIDATA: verificar relevancia"
     else:
-        situacao = "REVISAR: titulo sem termo especifico"
+        hoje = datetime.now(
+            ZoneInfo("America/Sao_Paulo")
+        ).date()
+        idade_dias = (hoje - data_publicacao).days
+
+        if idade_dias < 0:
+            situacao = "IGNORADA: data futura"
+        elif idade_dias > IDADE_MAXIMA_DIAS:
+            situacao = "IGNORADA: noticia antiga"
+        elif any(
+            termo in titulo.casefold()
+            for termo in TERMOS_RELEVANTES
+        ):
+            situacao = "CANDIDATA: verificar relevancia"
+        else:
+            situacao = "REVISAR: titulo sem termo especifico"
 
     return situacao, f"{data_texto} | {titulo}", link
 
@@ -280,9 +294,12 @@ def main():
     previas = []
 
     if candidatas:
-        # Alterna a posicao inicial conforme a data do ambiente
-        # que executa o programa. Nao grava estado.
-        posicao_inicial = date.today().toordinal() % len(candidatas)
+        # Filtro e alternancia usam a data de Sao Paulo.
+        hoje = datetime.now(
+            ZoneInfo("America/Sao_Paulo")
+        ).date()
+
+        posicao_inicial = hoje.toordinal() % len(candidatas)
         candidatas_ordenadas = (
             candidatas[posicao_inicial:]
             + candidatas[:posicao_inicial]
