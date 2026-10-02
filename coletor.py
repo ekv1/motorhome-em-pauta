@@ -14,6 +14,7 @@ from google import genai
 FONTE = "https://anacamp.com/"
 ARQUIVO_REGISTROS = Path("noticias.json")
 MODELO_IA = "gemini-3.8-flash"
+MAXIMO_AVALIACOES = 3
 
 # Estes termos selecionam candidatas para avaliacao.
 # Encontrar um termo no titulo nao aprova a publicacao.
@@ -213,7 +214,6 @@ Descricao: {descricao}
         texto_resposta = (resposta.text or "").strip()
         linhas = texto_resposta.splitlines()
 
-        # Primeiro verifica a quantidade e o inicio de cada linha.
         formato_valido = (
             len(linhas) == 3
             and linhas[0].startswith("Relevancia: ")
@@ -221,7 +221,6 @@ Descricao: {descricao}
             and linhas[2].startswith("Resumo: ")
         )
 
-        # So extrai os valores se as tres linhas tiverem o formato esperado.
         if formato_valido:
             relevancia = linhas[0].split(": ", 1)[1].strip()
             motivo = linhas[1].split(": ", 1)[1].strip()
@@ -241,7 +240,7 @@ Descricao: {descricao}
         print(texto_resposta)
 
     except Exception as erro:
-        # Uma falha da fonte ou da IA nao aprova a noticia.
+        # Falha da fonte ou da IA nao aprova a noticia.
         print("IA ou fonte indisponivel; noticia nao avaliada.")
         print("Tipo do erro:", type(erro).__name__)
 
@@ -253,7 +252,7 @@ def main():
     print("Noticias encontradas:", len(noticias))
     print("Links ja salvos:", len(links_salvos))
 
-    candidata_testada = False
+    candidatas_testadas = 0
 
     for texto, link in noticias:
         situacao, descricao, link = analisar(
@@ -267,9 +266,9 @@ def main():
 
         if (
             situacao.startswith("CANDIDATA")
-            and not candidata_testada
+            and candidatas_testadas < MAXIMO_AVALIACOES
         ):
-            candidata_testada = True
+            candidatas_testadas += 1
 
             # "descricao" tem o formato "data | titulo".
             titulo_limpo = descricao.split(" | ", 1)[1]
@@ -279,6 +278,7 @@ def main():
                 link,
             )
 
+    print("Candidatas enviadas para teste da IA:", candidatas_testadas)
     print("TESTE: nenhum arquivo foi alterado ou publicado.")
 
 
