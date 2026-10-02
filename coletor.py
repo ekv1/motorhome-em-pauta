@@ -243,6 +243,10 @@ Descricao: {descricao}
         # Falha da fonte ou da IA nao aprova a noticia.
         print("IA ou fonte indisponivel; noticia nao avaliada.")
         print("Tipo do erro:", type(erro).__name__)
+        print(
+            "Codigo do erro:",
+            getattr(erro, "code", "nao informado"),
+        )
 
 
 def main():
@@ -278,7 +282,10 @@ def main():
                 link,
             )
 
-    print("Candidatas enviadas para teste da IA:", candidatas_testadas)
+    print(
+        "Candidatas enviadas para teste da IA:",
+        candidatas_testadas,
+    )
     print("TESTE: nenhum arquivo foi alterado ou publicado.")
 
 
