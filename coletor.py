@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from datetime import datetime
+from datetime import date, datetime
 from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -257,11 +257,7 @@ def main():
     print("Noticias encontradas:", len(noticias))
     print("Links ja salvos:", len(links_salvos))
 
-    tentativas = 0
-    relevantes = 0
-    rejeitadas = 0
-    nao_avaliadas = 0
-    previas = []
+    candidatas = []
 
     for texto, link in noticias:
         situacao, descricao, link = analisar(
@@ -273,12 +269,34 @@ def main():
         print(situacao, "|", descricao)
         print("Fonte:", link)
 
-        if (
-            situacao.startswith("CANDIDATA")
-            and tentativas < MAXIMO_AVALIACOES
+        if situacao.startswith("CANDIDATA"):
+            data_texto, titulo_limpo = descricao.split(" | ", 1)
+            candidatas.append((data_texto, titulo_limpo, link))
+
+    tentativas = 0
+    relevantes = 0
+    rejeitadas = 0
+    nao_avaliadas = 0
+    previas = []
+
+    if candidatas:
+        # Alterna a posicao inicial conforme a data do ambiente
+        # que executa o programa. Nao grava estado.
+        posicao_inicial = date.today().toordinal() % len(candidatas)
+        candidatas_ordenadas = (
+            candidatas[posicao_inicial:]
+            + candidatas[:posicao_inicial]
+        )
+
+        print(
+            "Candidata escolhida hoje:",
+            candidatas_ordenadas[0][1],
+        )
+
+        for data_texto, titulo_limpo, link in (
+            candidatas_ordenadas[:MAXIMO_AVALIACOES]
         ):
             tentativas += 1
-            data_texto, titulo_limpo = descricao.split(" | ", 1)
             resultado, resumo = testar_avaliacao_ia(
                 titulo_limpo,
                 link,
@@ -297,6 +315,8 @@ def main():
                 rejeitadas += 1
             else:
                 nao_avaliadas += 1
+    else:
+        print("Nenhuma candidata nova encontrada.")
 
     print("Tentativas de avaliacao:", tentativas)
     print("Relevantes segundo a IA:", relevantes)
