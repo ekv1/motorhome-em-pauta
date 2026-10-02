@@ -44,8 +44,7 @@ class LeitorDeNoticias(HTMLParser):
         if tag != "a" or self.link_atual is not None:
             return
 
-        href = dict(attrs).get("href", "")
-        link = urljoin(FONTE, href)
+        link = urljoin(FONTE, dict(attrs).get("href", ""))
         partes = urlparse(link)
 
         if (
@@ -187,6 +186,27 @@ def analisar(texto, link, links_salvos):
     return situacao, f"{data_texto} | {titulo}", link
 
 
+def sugerir_categoria(titulo):
+    titulo_normalizado = titulo.casefold()
+
+    termos_historicos = (
+        "anos de história",
+        "anos de historia",
+        "história do",
+        "historia do",
+        "trajetória",
+        "trajetoria",
+    )
+
+    if any(
+        termo in titulo_normalizado
+        for termo in termos_historicos
+    ):
+        return "Histórias e comunidade"
+
+    return "Categoria a revisar"
+
+
 def testar_avaliacao_ia(titulo, link):
     if not os.getenv("GEMINI_API_KEY"):
         print("IA: chave nao encontrada; noticia nao avaliada.")
@@ -294,7 +314,6 @@ def main():
     previas = []
 
     if candidatas:
-        # Filtro e alternancia usam a data de Sao Paulo.
         hoje = datetime.now(
             ZoneInfo("America/Sao_Paulo")
         ).date()
@@ -323,6 +342,9 @@ def main():
                 relevantes += 1
                 previas.append({
                     "titulo": titulo_limpo,
+                    "categoria_sugerida": sugerir_categoria(
+                        titulo_limpo
+                    ),
                     "data": data_texto,
                     "resumo": resumo,
                     "fonte": "ANACAMP",
