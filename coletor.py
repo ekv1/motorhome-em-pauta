@@ -17,7 +17,7 @@ MODELO_IA = "gemini-3.8-flash"
 MAXIMO_AVALIACOES = 3
 
 # Um termo no titulo seleciona uma candidata.
-# Isso nao significa que a noticia foi aprovada para publicacao.
+# Isso nao significa aprovacao para publicacao.
 TERMOS_RELEVANTES = (
     "motorhome",
     "motor home",
@@ -130,20 +130,16 @@ def baixar_pagina(url):
 
 
 def buscar_noticias():
-    pagina = baixar_pagina(FONTE)
-
     leitor = LeitorDeNoticias()
-    leitor.feed(pagina)
+    leitor.feed(baixar_pagina(FONTE))
 
     # Remove pares identicos de titulo e link.
     return list(dict.fromkeys(leitor.noticias))
 
 
 def buscar_descricao(link):
-    pagina = baixar_pagina(link)
-
     leitor = LeitorDeDescricao()
-    leitor.feed(pagina)
+    leitor.feed(baixar_pagina(link))
 
     return leitor.obter_descricao()
 
@@ -180,14 +176,14 @@ def analisar(texto, link, links_salvos):
 def testar_avaliacao_ia(titulo, link):
     if not os.getenv("GEMINI_API_KEY"):
         print("IA: chave nao encontrada; noticia nao avaliada.")
-        return "nao_avaliada"
+        return "nao_avaliada", ""
 
     try:
         descricao = buscar_descricao(link)
 
         if not descricao:
             print("IA: descricao ausente; noticia nao avaliada.")
-            return "nao_avaliada"
+            return "nao_avaliada", ""
 
         prompt = f"""
 Voce avalia uma noticia para o site Motorhome em Pauta.
@@ -234,15 +230,15 @@ Descricao: {descricao}
 
         if not formato_valido:
             print("IA: resposta fora do formato; noticia nao avaliada.")
-            return "nao_avaliada"
+            return "nao_avaliada", ""
 
         print("Avaliacao da IA para:", titulo)
         print(texto_resposta)
 
         if relevancia == "SIM":
-            return "relevante"
+            return "relevante", resumo
 
-        return "rejeitada"
+        return "rejeitada", ""
 
     except Exception as erro:
         print("IA ou fonte indisponivel; noticia nao avaliada.")
@@ -251,7 +247,7 @@ Descricao: {descricao}
             "Codigo do erro:",
             getattr(erro, "code", "nao informado"),
         )
-        return "nao_avaliada"
+        return "nao_avaliada", ""
 
 
 def main():
@@ -265,6 +261,7 @@ def main():
     relevantes = 0
     rejeitadas = 0
     nao_avaliadas = 0
+    previas = []
 
     for texto, link in noticias:
         situacao, descricao, link = analisar(
@@ -281,11 +278,21 @@ def main():
             and tentativas < MAXIMO_AVALIACOES
         ):
             tentativas += 1
-            titulo_limpo = descricao.split(" | ", 1)[1]
-            resultado = testar_avaliacao_ia(titulo_limpo, link)
+            data_texto, titulo_limpo = descricao.split(" | ", 1)
+            resultado, resumo = testar_avaliacao_ia(
+                titulo_limpo,
+                link,
+            )
 
             if resultado == "relevante":
                 relevantes += 1
+                previas.append({
+                    "titulo": titulo_limpo,
+                    "data": data_texto,
+                    "resumo": resumo,
+                    "fonte": "ANACAMP",
+                    "link": link,
+                })
             elif resultado == "rejeitada":
                 rejeitadas += 1
             else:
@@ -295,6 +302,8 @@ def main():
     print("Relevantes segundo a IA:", relevantes)
     print("Rejeitadas pela IA:", rejeitadas)
     print("Noticias nao avaliadas:", nao_avaliadas)
+    print("Previas de cartoes:", len(previas))
+    print(json.dumps(previas, ensure_ascii=False, indent=2))
     print("TESTE: nenhum arquivo foi alterado ou publicado.")
 
 
