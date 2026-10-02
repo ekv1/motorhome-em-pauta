@@ -13,5 +13,10 @@ jobs:
       - name: Ler arquivos do repositorio
         uses: actions/checkout@v6
 
+      - name: Instalar biblioteca do Gemini
+        run: python3 -m pip install google-genai
+
       - name: Executar coletor sem publicar
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python3 coletor.py
