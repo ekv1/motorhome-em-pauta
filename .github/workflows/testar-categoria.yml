@@ -1,0 +1,65 @@
+name: Testar categoria sem IA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+
+      - name: Testar funcao sugerir_categoria
+        run: |
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          codigo = Path("coletor.py").read_text(encoding="utf-8")
+          arvore = ast.parse(codigo)
+
+          funcoes = [
+              item for item in arvore.body
+              if isinstance(item, ast.FunctionDef)
+              and item.name == "sugerir_categoria"
+          ]
+
+          if len(funcoes) != 1:
+              raise SystemExit(
+                  "ERRO: funcao sugerir_categoria nao encontrada."
+              )
+
+          modulo = ast.Module(body=funcoes, type_ignores=[])
+          contexto = {}
+          exec(compile(modulo, "coletor.py", "exec"), contexto)
+
+          sugerir_categoria = contexto["sugerir_categoria"]
+
+          testes = [
+              (
+                  "Grupo Pé na Estrada: 27 anos de história "
+                  "no caravanismo paulista",
+                  "Histórias e comunidade",
+              ),
+              (
+                  "Novo ponto de apoio para motorhomes",
+                  "Categoria a revisar",
+              ),
+          ]
+
+          for titulo, esperado in testes:
+              obtido = sugerir_categoria(titulo)
+              print("Titulo:", titulo)
+              print("Categoria obtida:", obtido)
+              print("Categoria esperada:", esperado)
+
+              if obtido != esperado:
+                  raise SystemExit("ERRO: categoria diferente da esperada.")
+
+          print("TESTE CONCLUIDO: 2 casos passaram; Gemini nao foi usado.")
+          PY
