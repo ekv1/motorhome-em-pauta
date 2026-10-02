@@ -1,0 +1,65 @@
+name: Testar feed do MaCamp
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verificar feed sem usar IA
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          url = (
+              "https://macamp.com.br/category/"
+              "noticias/caravanismo/feed/"
+          )
+
+          pedido = Request(
+              url,
+              headers={
+                  "User-Agent": "MotorhomeEmPauta/0.1 (teste de feed)"
+              },
+          )
+
+          try:
+              with urlopen(pedido, timeout=20) as resposta:
+                  conteudo = resposta.read(1000000)
+                  print("Status HTTP:", resposta.status)
+                  print(
+                      "Tipo de conteudo:",
+                      resposta.headers.get("Content-Type", "")
+                  )
+          except (HTTPError, URLError) as erro:
+              print("Nao foi possivel acessar o endereco do feed.")
+              print("Tipo do erro:", type(erro).__name__)
+              print("Codigo HTTP:", getattr(erro, "code", "nao informado"))
+              raise SystemExit(0)
+
+          try:
+              raiz = ET.fromstring(conteudo)
+          except ET.ParseError:
+              print("O endereco respondeu, mas nao retornou XML valido.")
+              raise SystemExit(0)
+
+          itens = raiz.findall("./channel/item")
+          print("Itens RSS encontrados:", len(itens))
+
+          for item in itens[:3]:
+              print("Titulo:", item.findtext("title", "").strip())
+              print("Data:", item.findtext("pubDate", "").strip())
+              print("Link:", item.findtext("link", "").strip())
+
+          if not itens:
+              print("Nenhum item RSS identificado neste teste.")
+
+          print("TESTE: Gemini, noticias.json e site nao foram usados.")
+          PY
