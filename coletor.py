@@ -15,8 +15,8 @@ FONTE = "https://anacamp.com/"
 ARQUIVO_REGISTROS = Path("noticias.json")
 MODELO_IA = "gemini-3.8-flash"
 
-# Este filtro apenas seleciona candidatas para o teste.
-# Uma palavra no titulo nao equivale a aprovacao editorial.
+# Estes termos selecionam candidatas para avaliacao.
+# Encontrar um termo no titulo nao aprova a publicacao.
 TERMOS_RELEVANTES = (
     "motorhome",
     "motor home",
@@ -204,19 +204,83 @@ Titulo: {titulo}
 Descricao: {descricao}
 """
 
-        # Manter o cliente aberto durante a chamada evita o erro
-        # "client has been closed" visto no teste anterior.
         with genai.Client() as client:
             resposta = client.models.generate_content(
                 model=MODELO_IA,
                 contents=prompt,
             )
 
-        texto = (resposta.text or "").strip()
-        linhas = texto.splitlines()
+        texto_resposta = (resposta.text or "").strip()
+        linhas = texto_resposta.splitlines()
+
+        # Primeiro verifica a quantidade e o inicio de cada linha.
+        formato_valido = (
+            len(linhas) == 3
+            and linhas[0].startswith("Relevancia: ")
+            and linhas[1].startswith("Motivo: ")
+            and linhas[2].startswith("Resumo: ")
+        )
+
+        # So extrai os valores se as tres linhas tiverem o formato esperado.
+        if formato_valido:
+            relevancia = linhas[0].split(": ", 1)[1].strip()
+            motivo = linhas[1].split(": ", 1)[1].strip()
+            resumo = linhas[2].split(": ", 1)[1].strip()
+
+            formato_valido = (
+                relevancia in ("SIM", "NAO")
+                and bool(motivo)
+                and bool(resumo)
+            )
+
+        if not formato_valido:
+            print("IA: resposta fora do formato; noticia nao avaliada.")
+            return
+
+        print("Avaliacao da IA para:", titulo)
+        print(texto_resposta)
+
+    except Exception as erro:
+        # Uma falha da fonte ou da IA nao aprova a noticia.
+        print("IA ou fonte indisponivel; noticia nao avaliada.")
+        print("Tipo do erro:", type(erro).__name__)
+
+
+def main():
+    links_salvos = ler_links_salvos()
+    noticias = buscar_noticias()
+
+    print("Noticias encontradas:", len(noticias))
+    print("Links ja salvos:", len(links_salvos))
+
+    candidata_testada = False
+
+    for texto, link in noticias:
+        situacao, descricao, link = analisar(
+            texto,
+            link,
+            links_salvos,
+        )
+
+        print(situacao, "|", descricao)
+        print("Fonte:", link)
 
         if (
-            len(linhas) != 3
-            or not linhas[0].startswith("Relevancia: ")
-            or linhas[0].split(": ", 1)[1].strip()
-            not in ("SIM", 
+            situacao.startswith("CANDIDATA")
+            and not candidata_testada
+        ):
+            candidata_testada = True
+
+            # "descricao" tem o formato "data | titulo".
+            titulo_limpo = descricao.split(" | ", 1)[1]
+
+            testar_avaliacao_ia(
+                titulo_limpo,
+                link,
+            )
+
+    print("TESTE: nenhum arquivo foi alterado ou publicado.")
+
+
+if __name__ == "__main__":
+    main()
