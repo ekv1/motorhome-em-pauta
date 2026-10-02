@@ -1,0 +1,60 @@
+name: Comparar rascunho com noticias publicadas
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  comparar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+
+      - name: Conferir se rascunho ja foi publicado
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          publicados = json.loads(
+              Path("noticias.json").read_text(encoding="utf-8")
+          )
+
+          if not isinstance(publicados, list):
+              raise SystemExit(
+                  "ERRO: noticias.json deve conter uma lista."
+              )
+
+          link_rascunho = (
+              "https://anacamp.com/noticia/"
+              "grupo-pe-na-estrada-27-anos-de-historia-"
+              "no-caravanismo-paulista/"
+          )
+
+          links_publicados = {
+              item.get("link")
+              for item in publicados
+              if isinstance(item, dict)
+          }
+
+          print("Noticias publicadas:", len(publicados))
+
+          if link_rascunho in links_publicados:
+              print("Resultado: DUPLICADO")
+              print(
+                  "O rascunho do Grupo Pe na Estrada "
+                  "ja consta em noticias.json."
+              )
+          else:
+              print("Resultado: NAO ENCONTRADO")
+              raise SystemExit(
+                  "O link do rascunho nao foi localizado. "
+                  "Confira o arquivo antes de avancar."
+              )
+
+          print("TESTE: nenhum arquivo foi alterado.")
+          PY
