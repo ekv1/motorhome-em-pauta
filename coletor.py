@@ -14,6 +14,8 @@ from google import genai
 
 FONTE = "https://anacamp.com/"
 ARQUIVO_REGISTROS = Path("noticias.json")
+ARQUIVO_RASCUNHOS = Path("rascunhos-coletor.json")
+
 MODELO_IA = "gemini-3.8-flash"
 MAXIMO_AVALIACOES = 1
 IDADE_MAXIMA_DIAS = 14
@@ -169,6 +171,7 @@ def analisar(texto, link, links_salvos):
         hoje = datetime.now(
             ZoneInfo("America/Sao_Paulo")
         ).date()
+
         idade_dias = (hoje - data_publicacao).days
 
         if idade_dias < 0:
@@ -285,6 +288,9 @@ Descricao: {descricao}
 
 
 def main():
+    # Evita reaproveitar um rascunho local de uma execucao anterior.
+    ARQUIVO_RASCUNHOS.unlink(missing_ok=True)
+
     links_salvos = ler_links_salvos()
     noticias = buscar_noticias()
 
@@ -333,6 +339,7 @@ def main():
             candidatas_ordenadas[:MAXIMO_AVALIACOES]
         ):
             tentativas += 1
+
             resultado, resumo = testar_avaliacao_ia(
                 titulo_limpo,
                 link,
@@ -340,6 +347,7 @@ def main():
 
             if resultado == "relevante":
                 relevantes += 1
+
                 previas.append({
                     "titulo": titulo_limpo,
                     "categoria_sugerida": sugerir_categoria(
@@ -363,7 +371,24 @@ def main():
     print("Noticias nao avaliadas:", nao_avaliadas)
     print("Previas de cartoes:", len(previas))
     print(json.dumps(previas, ensure_ascii=False, indent=2))
-    print("TESTE: nenhum arquivo foi alterado ou publicado.")
+
+    if previas:
+        ARQUIVO_RASCUNHOS.write_text(
+            json.dumps(
+                previas,
+                ensure_ascii=False,
+                indent=2,
+            ) + "\n",
+            encoding="utf-8",
+        )
+        print(
+            "Rascunhos guardados para conferencia:",
+            len(previas),
+        )
+    else:
+        print("Nenhum rascunho gerado nesta execucao.")
+
+    print("TESTE: noticias.json e o site nao foram alterados.")
 
 
 if __name__ == "__main__":
