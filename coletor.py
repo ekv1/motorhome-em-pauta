@@ -287,11 +287,25 @@ def sugerir_categoria(titulo):
         "trajetoria",
     )
 
+    termos_guias = (
+        "quanto custa",
+        "custos",
+        "manutenção",
+        "manutencao",
+        "despesas",
+    )
+
     if any(
         termo in titulo_normalizado
         for termo in termos_historicos
     ):
         return "Histórias e comunidade"
+
+    if any(
+        termo in titulo_normalizado
+        for termo in termos_guias
+    ):
+        return "Guias e vida a bordo"
 
     return "Categoria a revisar"
 
@@ -549,3 +563,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+`
