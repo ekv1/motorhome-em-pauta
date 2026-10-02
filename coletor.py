@@ -1,15 +1,22 @@
 import json
+import os
 import re
 from datetime import datetime
+from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from google import genai
+
+
 FONTE = "https://anacamp.com/"
 ARQUIVO_REGISTROS = Path("noticias.json")
+MODELO_IA = "gemini-3.8-flash"
 
-# Filtro inicial: sugere relevância, mas não aprova publicação.
+# Este filtro apenas seleciona candidatas para o teste.
+# Uma palavra no titulo nao equivale a aprovacao editorial.
 TERMOS_RELEVANTES = (
     "motorhome",
     "motor home",
@@ -54,11 +61,40 @@ class LeitorDeNoticias(HTMLParser):
             return
 
         texto = " ".join(" ".join(self.texto_atual).split())
+
         if texto:
             self.noticias.append((texto, self.link_atual))
 
         self.link_atual = None
         self.texto_atual = []
+
+
+class LeitorDeDescricao(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.metadados = {}
+
+    def handle_starttag(self, tag, attrs):
+        if tag != "meta":
+            return
+
+        atributos = dict(attrs)
+        nome = atributos.get("property") or atributos.get("name")
+
+        if nome in ("og:description", "description"):
+            valor = unescape(
+                atributos.get("content", "")
+            ).strip()
+
+            if valor:
+                self.metadados[nome] = valor
+
+    def obter_descricao(self):
+        return (
+            self.metadados.get("og:description")
+            or self.metadados.get("description")
+            or ""
+        )
 
 
 def ler_links_salvos():
@@ -72,69 +108,115 @@ def ler_links_salvos():
     return {
         item["link"]
         for item in registros
-        if isinstance(item, dict) and isinstance(item.get("link"), str)
+        if isinstance(item, dict)
+        and isinstance(item.get("link"), str)
     }
 
 
-def buscar_noticias():
+def baixar_pagina(url):
     pedido = Request(
-        FONTE,
-        headers={"User-Agent": "MotorhomeEmPauta/0.1 (teste de coleta)"},
+        url,
+        headers={
+            "User-Agent": "MotorhomeEmPauta/0.1 (teste de coleta)"
+        },
     )
 
     with urlopen(pedido, timeout=20) as resposta:
-        pagina = resposta.read(1000000).decode(
-            "utf-8", errors="replace"
+        return resposta.read(1000000).decode(
+            "utf-8",
+            errors="replace",
         )
+
+
+def buscar_noticias():
+    pagina = baixar_pagina(FONTE)
 
     leitor = LeitorDeNoticias()
     leitor.feed(pagina)
 
-    # Remove links idênticos encontrados mais de uma vez na página.
+    # Remove pares identicos de titulo e link.
     return list(dict.fromkeys(leitor.noticias))
+
+
+def buscar_descricao(link):
+    pagina = baixar_pagina(link)
+
+    leitor = LeitorDeDescricao()
+    leitor.feed(pagina)
+
+    return leitor.obter_descricao()
 
 
 def analisar(texto, link, links_salvos):
     encontrado = re.match(
-        r"^(\d{2}/\d{2}/\d{4})\s+(.+)$", texto
+        r"^(\d{2}/\d{2}/\d{4})\s+(.+)$",
+        texto,
     )
 
     if not encontrado:
-        return "IGNORADA: data não identificada", texto, link
+        return "IGNORADA: data nao identificada", texto, link
 
     data_texto, titulo = encontrado.groups()
 
     try:
         datetime.strptime(data_texto, "%d/%m/%Y")
     except ValueError:
-        return "IGNORADA: data inválida", titulo, link
+        return "IGNORADA: data invalida", titulo, link
 
     if link in links_salvos:
         situacao = "REPETIDA"
-    elif any(termo in titulo.casefold() for termo in TERMOS_RELEVANTES):
-        situacao = "CANDIDATA: verificar relevância"
+    elif any(
+        termo in titulo.casefold()
+        for termo in TERMOS_RELEVANTES
+    ):
+        situacao = "CANDIDATA: verificar relevancia"
     else:
-        situacao = "REVISAR: título sem termo específico"
+        situacao = "REVISAR: titulo sem termo especifico"
 
     return situacao, f"{data_texto} | {titulo}", link
 
 
-def main():
-    links_salvos = ler_links_salvos()
-    noticias = buscar_noticias()
+def testar_avaliacao_ia(titulo, link):
+    if not os.getenv("GEMINI_API_KEY"):
+        print("IA: chave nao encontrada; noticia nao avaliada.")
+        return
 
-    print("Notícias encontradas:", len(noticias))
-    print("Links já salvos:", len(links_salvos))
+    try:
+        descricao = buscar_descricao(link)
 
-    for texto, link in noticias:
-        situacao, descricao, link = analisar(
-            texto, link, links_salvos
-        )
-        print(situacao, "|", descricao)
-        print("Fonte:", link)
+        if not descricao:
+            print("IA: descricao ausente; noticia nao avaliada.")
+            return
 
-    print("TESTE: nenhum arquivo foi alterado ou publicado.")
+        prompt = f"""
+Voce avalia uma noticia para o site Motorhome em Pauta.
 
+Use somente o titulo e a descricao fornecidos abaixo.
+Nao invente datas, precos, horarios, vagas ou servicos.
+Nao diga que o site verificou pessoalmente o local.
 
-if __name__ == "__main__":
-    main()
+Responda em portugues com exatamente tres linhas:
+Relevancia: SIM ou NAO
+Motivo: uma frase curta
+Resumo: uma frase curta baseada somente nos dados recebidos
+
+Titulo: {titulo}
+Descricao: {descricao}
+"""
+
+        # Manter o cliente aberto durante a chamada evita o erro
+        # "client has been closed" visto no teste anterior.
+        with genai.Client() as client:
+            resposta = client.models.generate_content(
+                model=MODELO_IA,
+                contents=prompt,
+            )
+
+        texto = (resposta.text or "").strip()
+        linhas = texto.splitlines()
+
+        if (
+            len(linhas) != 3
+            or not linhas[0].startswith("Relevancia: ")
+            or linhas[0].split(": ", 1)[1].strip()
+            not in ("SIM", 
