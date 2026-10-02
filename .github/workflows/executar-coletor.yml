@@ -3,7 +3,7 @@ name: Executar coletor em teste
 on:
   workflow_dispatch:
   schedule:
-    - cron: "18 17 * * *"
+    - cron: "30 21 * * *"
 
 permissions:
   contents: read
