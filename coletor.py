@@ -14,7 +14,7 @@ from google import genai
 FONTE = "https://anacamp.com/"
 ARQUIVO_REGISTROS = Path("noticias.json")
 MODELO_IA = "gemini-3.8-flash"
-MAXIMO_AVALIACOES = 3
+MAXIMO_AVALIACOES = 1
 
 # Um termo no titulo seleciona uma candidata.
 # Isso nao significa aprovacao para publicacao.
