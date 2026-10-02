@@ -1,9 +1,18 @@
 [
   {
     "titulo": "Acampa-MS inaugura ponto de apoio em Porto Murtinho com participação da Anacamp",
+    "categoria_sugerida": "Últimas notícias",
     "data": "29/09/2026",
     "resumo": "Segundo a ANACAMP, foi inaugurado em Porto Murtinho (MS), às margens da BR-267, um ponto de apoio com capacidade informada para até 12 motorhomes. Confirme as condições de uso antes de viajar.",
     "fonte": "ANACAMP",
     "link": "https://anacamp.com/noticia/acampa-ms-inaugura-ponto-de-apoio-em-porto-murtinho-com-participacao-da-anacamp/"
+  },
+  {
+    "titulo": "Grupo Pé na Estrada: 27 anos de história no caravanismo paulista",
+    "categoria_sugerida": "Histórias e comunidade",
+    "data": "24/09/2026",
+    "resumo": "O Grupo Pé na Estrada tem uma trajetória iniciada em 1999 no caravanismo paulista. A publicação destaca o papel das associações estaduais na organização de encontros e na aproximação de famílias campistas.",
+    "fonte": "ANACAMP",
+    "link": "https://anacamp.com/noticia/grupo-pe-na-estrada-27-anos-de-historia-no-caravanismo-paulista/"
   }
 ]
