@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
-        content="Notícias sobre motorhomes, trailers e caravanismo no Brasil.">
+        content="Notícias e histórias sobre motorhomes, trailers e caravanismo no Brasil.">
   <title>Motorhome em Pauta</title>
 
   <style>
@@ -49,6 +49,10 @@
       padding: 38px 20px 60px;
     }
 
+    section {
+      margin-bottom: 42px;
+    }
+
     h2 {
       margin: 0 0 8px;
     }
@@ -56,7 +60,7 @@
     .introducao {
       color: #526473;
       line-height: 1.6;
-      margin-bottom: 30px;
+      margin: 0 0 22px;
     }
 
     .lista {
@@ -134,15 +138,26 @@
   </header>
 
   <main class="largura">
-    <h2>Últimas notícias</h2>
-    <p class="introducao">
-      Novidades sobre motorhomes, trailers e caravanismo,
-      com acesso à fonte original de cada publicação.
-    </p>
+    <section aria-labelledby="titulo-noticias">
+      <h2 id="titulo-noticias">Últimas notícias</h2>
+      <p class="introducao">
+        Novidades sobre motorhomes, trailers e caravanismo,
+        com acesso à publicação original.
+      </p>
+      <div id="noticias" class="lista" aria-live="polite">
+        <div class="mensagem">Carregando notícias...</div>
+      </div>
+    </section>
 
-    <div id="noticias" class="lista" aria-live="polite">
-      <div class="mensagem">Carregando notícias...</div>
-    </div>
+    <section aria-labelledby="titulo-historias">
+      <h2 id="titulo-historias">Histórias e comunidade</h2>
+      <p class="introducao">
+        Trajetórias, grupos e experiências da comunidade caravanista.
+      </p>
+      <div id="historias" class="lista" aria-live="polite">
+        <div class="mensagem">Carregando histórias...</div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -154,9 +169,10 @@
   </footer>
 
   <script>
-    const area = document.getElementById("noticias");
+    const areaNoticias = document.getElementById("noticias");
+    const areaHistorias = document.getElementById("historias");
 
-    function mostrarMensagem(texto) {
+    function mostrarMensagem(area, texto) {
       area.replaceChildren();
 
       const caixa = document.createElement("div");
@@ -170,13 +186,13 @@
       return typeof valor === "string" && valor.trim().length > 0;
     }
 
-    function criarCartao(noticia) {
+    function criarCartao(item) {
       if (
-        !textoValido(noticia.titulo) ||
-        !textoValido(noticia.data) ||
-        !textoValido(noticia.resumo) ||
-        !textoValido(noticia.link) ||
-        !textoValido(noticia.fonte)
+        !textoValido(item.titulo) ||
+        !textoValido(item.data) ||
+        !textoValido(item.resumo) ||
+        !textoValido(item.fonte) ||
+        !textoValido(item.link)
       ) {
         return null;
       }
@@ -184,7 +200,8 @@
       let destino;
 
       try {
-        destino = new URL(noticia.link);
+        destino = new URL(item.link);
+
         if (destino.protocol !== "https:") {
           return null;
         }
@@ -197,18 +214,18 @@
 
       const data = document.createElement("p");
       data.className = "data";
-      data.textContent = noticia.data;
+      data.textContent = item.data;
 
       const titulo = document.createElement("h3");
-      titulo.textContent = noticia.titulo;
+      titulo.textContent = item.titulo;
 
       const resumo = document.createElement("p");
       resumo.className = "resumo";
-      resumo.textContent = noticia.resumo;
+      resumo.textContent = item.resumo;
 
       const fonte = document.createElement("p");
       fonte.className = "fonte";
-      fonte.textContent = "Fonte: " + noticia.fonte + " · ";
+      fonte.textContent = "Fonte: " + item.fonte + " · ";
 
       const link = document.createElement("a");
       link.href = destino.href;
@@ -222,7 +239,20 @@
       return cartao;
     }
 
-    async function carregarNoticias() {
+    function exibirItens(area, itens, mensagemVazia) {
+      const cartoes = itens
+        .map(criarCartao)
+        .filter(cartao => cartao !== null);
+
+      if (cartoes.length === 0) {
+        mostrarMensagem(area, mensagemVazia);
+        return;
+      }
+
+      area.replaceChildren(...cartoes);
+    }
+
+    async function carregarConteudo() {
       try {
         const resposta = await fetch("./noticias.json", {
           cache: "no-store"
@@ -238,25 +268,51 @@
           throw new Error("Formato inesperado de noticias.json");
         }
 
-        const cartoes = registros
-          .map(criarCartao)
-          .filter(cartao => cartao !== null);
+        const noticias = [];
+        const historias = [];
 
-        if (cartoes.length === 0) {
-          mostrarMensagem("Nenhuma notícia publicada ainda.");
-          return;
+        for (const item of registros) {
+          if (!item || typeof item !== "object") {
+            continue;
+          }
+
+          if (item.categoria_sugerida === "Histórias e comunidade") {
+            historias.push(item);
+          } else if (
+            item.categoria_sugerida === "Últimas notícias" ||
+            !item.categoria_sugerida
+          ) {
+            // Sem categoria: compatibilidade com o cartão já publicado.
+            noticias.push(item);
+          }
+          // "Categoria a revisar" não aparece automaticamente no site.
         }
 
-        area.replaceChildren(...cartoes);
+        exibirItens(
+          areaNoticias,
+          noticias,
+          "Nenhuma notícia publicada nesta seção."
+        );
+
+        exibirItens(
+          areaHistorias,
+          historias,
+          "Nenhuma história publicada nesta seção."
+        );
       } catch (erro) {
-        console.error("Erro ao carregar notícias:", erro);
+        console.error("Erro ao carregar conteúdo:", erro);
         mostrarMensagem(
+          areaNoticias,
           "Não foi possível carregar as notícias neste momento."
+        );
+        mostrarMensagem(
+          areaHistorias,
+          "Não foi possível carregar as histórias neste momento."
         );
       }
     }
 
-    carregarNoticias();
+    carregarConteudo();
   </script>
 </body>
 </html>
