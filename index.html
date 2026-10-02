@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description"
-        content="Notícias e histórias sobre motorhomes, trailers e caravanismo no Brasil.">
+        content="Notícias, histórias e guias sobre motorhomes, trailers e caravanismo no Brasil.">
   <title>Motorhome em Pauta</title>
 
   <style>
@@ -158,6 +158,17 @@
         <div class="mensagem">Carregando histórias...</div>
       </div>
     </section>
+
+    <section aria-labelledby="titulo-guias">
+      <h2 id="titulo-guias">Guias e vida a bordo</h2>
+      <p class="introducao">
+        Custos, manutenção e informações práticas para quem viaja
+        de motorhome ou trailer.
+      </p>
+      <div id="guias" class="lista" aria-live="polite">
+        <div class="mensagem">Carregando guias...</div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -171,6 +182,7 @@
   <script>
     const areaNoticias = document.getElementById("noticias");
     const areaHistorias = document.getElementById("historias");
+    const areaGuias = document.getElementById("guias");
 
     function mostrarMensagem(area, texto) {
       area.replaceChildren();
@@ -270,6 +282,7 @@
 
         const noticias = [];
         const historias = [];
+        const guias = [];
 
         for (const item of registros) {
           if (!item || typeof item !== "object") {
@@ -278,14 +291,16 @@
 
           if (item.categoria_sugerida === "Histórias e comunidade") {
             historias.push(item);
+          } else if (item.categoria_sugerida === "Guias e vida a bordo") {
+            guias.push(item);
           } else if (
             item.categoria_sugerida === "Últimas notícias" ||
             !item.categoria_sugerida
           ) {
-            // Sem categoria: compatibilidade com o cartão já publicado.
+            // Mantém compatibilidade com o primeiro cartão publicado.
             noticias.push(item);
           }
-          // "Categoria a revisar" não aparece automaticamente no site.
+          // "Categoria a revisar" permanece fora do site.
         }
 
         exibirItens(
@@ -299,15 +314,28 @@
           historias,
           "Nenhuma história publicada nesta seção."
         );
+
+        exibirItens(
+          areaGuias,
+          guias,
+          "Nenhum guia publicado nesta seção."
+        );
       } catch (erro) {
         console.error("Erro ao carregar conteúdo:", erro);
+
         mostrarMensagem(
           areaNoticias,
           "Não foi possível carregar as notícias neste momento."
         );
+
         mostrarMensagem(
           areaHistorias,
           "Não foi possível carregar as histórias neste momento."
+        );
+
+        mostrarMensagem(
+          areaGuias,
+          "Não foi possível carregar os guias neste momento."
         );
       }
     }
