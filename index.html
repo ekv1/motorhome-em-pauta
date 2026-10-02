@@ -3,54 +3,260 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+        content="Notícias sobre motorhomes, trailers e caravanismo no Brasil.">
   <title>Motorhome em Pauta</title>
+
   <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #183047;
+      background: #f3f6f5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      color: #173047;
-      background: #f4f7f8;
     }
+
     header {
       background: #123b52;
-      color: white;
-      padding: 48px 24px;
-      text-align: center;
+      color: #ffffff;
+      padding: 42px 20px;
     }
-    header h1 { margin: 0 0 12px; }
+
+    .largura {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .marca {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+
+    .slogan {
+      margin: 0;
+      color: #d9e8eb;
+      font-size: 1.05rem;
+    }
+
     main {
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 0 20px;
+      padding: 38px 20px 60px;
     }
-    section {
-      background: white;
-      padding: 28px;
+
+    h2 {
+      margin: 0 0 8px;
+    }
+
+    .introducao {
+      color: #526473;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .lista {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .cartao,
+    .mensagem {
+      background: #ffffff;
+      border: 1px solid #e0e8e8;
       border-radius: 12px;
+      padding: 24px;
     }
+
+    .cartao {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .data {
+      color: #557081;
+      font-size: 0.9rem;
+      margin: 0 0 12px;
+    }
+
+    .cartao h3 {
+      font-size: 1.25rem;
+      line-height: 1.35;
+      margin: 0 0 14px;
+    }
+
+    .resumo {
+      line-height: 1.6;
+      margin: 0 0 20px;
+    }
+
+    .fonte {
+      color: #526473;
+      font-size: 0.9rem;
+      margin-top: auto;
+    }
+
+    a {
+      color: #086b75;
+      font-weight: bold;
+    }
+
+    a:focus-visible {
+      outline: 3px solid #e6a23c;
+      outline-offset: 3px;
+    }
+
+    .mensagem {
+      line-height: 1.6;
+    }
+
     footer {
-      text-align: center;
-      padding: 32px 20px;
-      color: #536573;
+      border-top: 1px solid #dce5e5;
+      color: #526473;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      padding: 25px 20px;
     }
   </style>
 </head>
+
 <body>
   <header>
-    <h1>Motorhome em Pauta</h1>
-    <p>As notícias que movem o caravanismo.</p>
+    <div class="largura">
+      <h1 class="marca">Motorhome em Pauta</h1>
+      <p class="slogan">As notícias que movem o caravanismo.</p>
+    </div>
   </header>
 
-  <main>
-    <section>
-      <h2>Bem-vindo</h2>
-      <p>Um espaço para acompanhar novidades sobre motorhomes,
-         trailers e caravanismo no Brasil.</p>
-      <p>As notícias serão adicionadas após a configuração das fontes
-         e da automação.</p>
-    </section>
+  <main class="largura">
+    <h2>Últimas notícias</h2>
+    <p class="introducao">
+      Novidades sobre motorhomes, trailers e caravanismo,
+      com acesso à fonte original de cada publicação.
+    </p>
+
+    <div id="noticias" class="lista" aria-live="polite">
+      <div class="mensagem">Carregando notícias...</div>
+    </div>
   </main>
 
-  <footer>Motorhome em Pauta</footer>
+  <footer>
+    <div class="largura">
+      Os resumos poderão ser produzidos com apoio de inteligência artificial.
+      Antes de viajar, confirme preços, funcionamento, estrutura e regras
+      diretamente com os responsáveis. A data exibida é a da fonte original.
+    </div>
+  </footer>
+
+  <script>
+    const area = document.getElementById("noticias");
+
+    function mostrarMensagem(texto) {
+      area.replaceChildren();
+
+      const caixa = document.createElement("div");
+      caixa.className = "mensagem";
+      caixa.textContent = texto;
+
+      area.appendChild(caixa);
+    }
+
+    function textoValido(valor) {
+      return typeof valor === "string" && valor.trim().length > 0;
+    }
+
+    function criarCartao(noticia) {
+      if (
+        !textoValido(noticia.titulo) ||
+        !textoValido(noticia.data) ||
+        !textoValido(noticia.resumo) ||
+        !textoValido(noticia.link) ||
+        !textoValido(noticia.fonte)
+      ) {
+        return null;
+      }
+
+      let destino;
+
+      try {
+        destino = new URL(noticia.link);
+        if (destino.protocol !== "https:") {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+
+      const cartao = document.createElement("article");
+      cartao.className = "cartao";
+
+      const data = document.createElement("p");
+      data.className = "data";
+      data.textContent = noticia.data;
+
+      const titulo = document.createElement("h3");
+      titulo.textContent = noticia.titulo;
+
+      const resumo = document.createElement("p");
+      resumo.className = "resumo";
+      resumo.textContent = noticia.resumo;
+
+      const fonte = document.createElement("p");
+      fonte.className = "fonte";
+      fonte.textContent = "Fonte: " + noticia.fonte + " · ";
+
+      const link = document.createElement("a");
+      link.href = destino.href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Ler publicação original";
+
+      fonte.appendChild(link);
+      cartao.append(data, titulo, resumo, fonte);
+
+      return cartao;
+    }
+
+    async function carregarNoticias() {
+      try {
+        const resposta = await fetch("./noticias.json", {
+          cache: "no-store"
+        });
+
+        if (!resposta.ok) {
+          throw new Error("Falha ao carregar noticias.json");
+        }
+
+        const registros = await resposta.json();
+
+        if (!Array.isArray(registros)) {
+          throw new Error("Formato inesperado de noticias.json");
+        }
+
+        const cartoes = registros
+          .map(criarCartao)
+          .filter(cartao => cartao !== null);
+
+        if (cartoes.length === 0) {
+          mostrarMensagem("Nenhuma notícia publicada ainda.");
+          return;
+        }
+
+        area.replaceChildren(...cartoes);
+      } catch (erro) {
+        console.error("Erro ao carregar notícias:", erro);
+        mostrarMensagem(
+          "Não foi possível carregar as notícias neste momento."
+        );
+      }
+    }
+
+    carregarNoticias();
+  </script>
 </body>
 </html>
