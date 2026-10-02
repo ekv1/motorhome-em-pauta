@@ -16,8 +16,7 @@ ARQUIVO_REGISTROS = Path("noticias.json")
 MODELO_IA = "gemini-3.8-flash"
 MAXIMO_AVALIACOES = 3
 
-# Estes termos selecionam candidatas para avaliacao.
-# Encontrar um termo no titulo nao aprova a publicacao.
+# Um termo no titulo seleciona uma candidata, nao aprova publicacao.
 TERMOS_RELEVANTES = (
     "motorhome",
     "motor home",
@@ -135,7 +134,6 @@ def buscar_noticias():
     leitor = LeitorDeNoticias()
     leitor.feed(pagina)
 
-    # Remove pares identicos de titulo e link.
     return list(dict.fromkeys(leitor.noticias))
 
 
@@ -180,14 +178,14 @@ def analisar(texto, link, links_salvos):
 def testar_avaliacao_ia(titulo, link):
     if not os.getenv("GEMINI_API_KEY"):
         print("IA: chave nao encontrada; noticia nao avaliada.")
-        return
+        return "falha"
 
     try:
         descricao = buscar_descricao(link)
 
         if not descricao:
             print("IA: descricao ausente; noticia nao avaliada.")
-            return
+            return "falha"
 
         prompt = f"""
 Voce avalia uma noticia para o site Motorhome em Pauta.
@@ -234,19 +232,20 @@ Descricao: {descricao}
 
         if not formato_valido:
             print("IA: resposta fora do formato; noticia nao avaliada.")
-            return
+            return "falha"
 
         print("Avaliacao da IA para:", titulo)
         print(texto_resposta)
+        return "avaliada"
 
     except Exception as erro:
-        # Falha da fonte ou da IA nao aprova a noticia.
         print("IA ou fonte indisponivel; noticia nao avaliada.")
         print("Tipo do erro:", type(erro).__name__)
         print(
             "Codigo do erro:",
             getattr(erro, "code", "nao informado"),
         )
+        return "falha"
 
 
 def main():
@@ -256,7 +255,9 @@ def main():
     print("Noticias encontradas:", len(noticias))
     print("Links ja salvos:", len(links_salvos))
 
-    candidatas_testadas = 0
+    tentativas = 0
+    avaliadas = 0
+    nao_avaliadas = 0
 
     for texto, link in noticias:
         situacao, descricao, link = analisar(
@@ -270,22 +271,20 @@ def main():
 
         if (
             situacao.startswith("CANDIDATA")
-            and candidatas_testadas < MAXIMO_AVALIACOES
+            and tentativas < MAXIMO_AVALIACOES
         ):
-            candidatas_testadas += 1
-
-            # "descricao" tem o formato "data | titulo".
+            tentativas += 1
             titulo_limpo = descricao.split(" | ", 1)[1]
+            resultado = testar_avaliacao_ia(titulo_limpo, link)
 
-            testar_avaliacao_ia(
-                titulo_limpo,
-                link,
-            )
+            if resultado == "avaliada":
+                avaliadas += 1
+            else:
+                nao_avaliadas += 1
 
-    print(
-        "Candidatas enviadas para teste da IA:",
-        candidatas_testadas,
-    )
+    print("Tentativas de avaliacao:", tentativas)
+    print("Avaliacoes concluidas:", avaliadas)
+    print("Noticias nao avaliadas:", nao_avaliadas)
     print("TESTE: nenhum arquivo foi alterado ou publicado.")
 
 
