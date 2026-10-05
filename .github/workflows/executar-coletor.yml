@@ -2,6 +2,13 @@ name: Executar coletor em teste
 
 on:
   workflow_dispatch:
+    inputs:
+      gerar_previa_internacional:
+        description: "Gerar previa internacional para conferencia"
+        type: boolean
+        required: false
+        default: false
+
   schedule:
     - cron: "30 21 * * *"
 
@@ -155,5 +162,22 @@ jobs:
         with:
           name: pendentes-conferencia
           path: pendentes-conferencia.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Preparar materia internacional sem publicar
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.gerar_previa_internacional }}
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          test -f internacionais.py
+          python3 internacionais.py
+
+      - name: Guardar previa internacional
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.gerar_previa_internacional }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: previa-internacional
+          path: previa-internacional/
           if-no-files-found: ignore
           retention-days: 7
