@@ -36,11 +36,14 @@ function criarLink(texto, destino, classe, externo) {
 function montarMenus() {
   const menu = document.getElementById("menu");
   const rodape = document.getElementById("menu-rodape");
+  // Na página inicial usa só a âncora; nas matérias volta ao início.
+  const naInicial = document.querySelector(".grade[data-categoria]") !== null;
   SECOES.forEach(([nome, destino]) => {
-    if (menu) menu.appendChild(criarLink(nome, destino));
-    if (rodape) rodape.appendChild(criarLink(nome, destino));
+    const link = naInicial ? destino.replace("index.html", "") : destino;
+    if (menu) menu.appendChild(criarLink(nome, link));
+    if (rodape) rodape.appendChild(criarLink(nome, link));
   });
-  if (menu) menu.appendChild(criarLink("Viver é estrada", "index.html#ultimas", "botao"));
+  if (menu) menu.appendChild(criarLink("Viver é estrada", naInicial ? "#ultimas" : "index.html#ultimas", "botao"));
   const capa = document.getElementById("capa-acao");
   if (capa) capa.appendChild(criarLink("Ver últimas notícias →", "#ultimas", "botao-capa"));
 }
@@ -122,6 +125,12 @@ async function carregarNoticias() {
   return dados.filter(i => i && typeof i === "object");
 }
 
+function irParaAncora() {
+  if (!window.location.hash) return;
+  const alvo = document.getElementById(window.location.hash.slice(1));
+  if (alvo) alvo.scrollIntoView();
+}
+
 async function montarInicio() {
   const grades = document.querySelectorAll(".grade[data-categoria]");
   if (!grades.length) return;
@@ -146,6 +155,8 @@ async function montarInicio() {
     console.error(e);
     grades.forEach(g => { g.textContent = "Não foi possível carregar o conteúdo agora."; });
   }
+  // Rola só depois que os cartões aumentaram a altura das seções.
+  irParaAncora();
 }
 
 async function montarMateria() {
