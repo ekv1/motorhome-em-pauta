@@ -1,0 +1,339 @@
+[
+  {
+    "nome": "Apolo Trailer",
+    "categorias": [
+      "Trailers",
+      "Motorhomes e vans"
+    ],
+    "local": "Campo Alegre (SC)",
+    "uf": "SC",
+    "site": "https://apolotrailer.com.br/",
+    "descricao": "Fabricante de trailers e motorhomes com fábrica própria e filial em Itu (SP).",
+    "apelidos": [
+      "apolo"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Scorpion Trailers",
+    "categorias": [
+      "Trailers"
+    ],
+    "local": "Jaguaruna (SC)",
+    "uf": "SC",
+    "site": "https://www.scorpiontrailers.com.br/",
+    "descricao": "Mini trailers e teardrops; em atividade desde 2007.",
+    "apelidos": [
+      "scorpion"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Easy Trailers",
+    "categorias": [
+      "Trailers",
+      "Motorhomes e vans"
+    ],
+    "local": "Braço do Norte (SC)",
+    "uf": "SC",
+    "site": "https://www.easytrailers.com.br/",
+    "descricao": "Trailers turísticos de alto padrão com tecnologia embarcada.",
+    "apelidos": [
+      "easy trailers",
+      "easytrailers"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Alto Vale Trailer",
+    "categorias": [
+      "Trailers"
+    ],
+    "local": "",
+    "uf": "",
+    "site": "https://www.altovaletrailer.com.br/",
+    "descricao": "Fabricante de trailers. O site estava em manutenção na última consulta.",
+    "apelidos": [
+      "alto vale"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Fênix Trailer e Motorhome",
+    "categorias": [
+      "Trailers",
+      "Motorhomes e vans"
+    ],
+    "local": "",
+    "uf": "",
+    "site": "https://fenixmotorhomes.com/",
+    "descricao": "Trailers da linha FX com produção própria.",
+    "apelidos": [
+      "fênix",
+      "fenix"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Íon Trailers",
+    "categorias": [
+      "Trailers",
+      "Motorhomes e vans"
+    ],
+    "local": "Pelotas (RS)",
+    "uf": "RS",
+    "site": "https://www.iontrailers.com/",
+    "descricao": "Trailers, motorhomes e unidades móveis sob medida.",
+    "apelidos": [
+      "íon trailers",
+      "ion trailers"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Motor Trailer do Brasil",
+    "categorias": [
+      "Trailers"
+    ],
+    "local": "Pirassununga (SP)",
+    "uf": "SP",
+    "site": "https://motortrailer.com.br/",
+    "descricao": "Fabricante de trailers.",
+    "apelidos": [
+      "motor trailer"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Santo Inácio Motorhomes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Gramado (RS)",
+    "uf": "RS",
+    "site": "https://www.santoinaciomotorhomes.com.br/",
+    "descricao": "Motorhomes; a empresa informa mais de 1.000 unidades entregues.",
+    "apelidos": [
+      "santo inácio",
+      "santo inacio"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Marcopolo Motorhome",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Caxias do Sul (RS)",
+    "uf": "RS",
+    "site": "https://www.marcopolomotorhome.com.br/",
+    "descricao": "Divisão de motorhomes da Marcopolo, fabricante do Nomade.",
+    "apelidos": [
+      "marcopolo"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Neway Motorhomes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "",
+    "uf": "",
+    "site": "https://www.newayrvs.com.br/",
+    "descricao": "Em atividade desde 2009, com as linhas Prime e Overland.",
+    "apelidos": [
+      "neway"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Vettura Motor Homes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "São Leopoldo (RS)",
+    "uf": "RS",
+    "site": "https://www.vettura.com.br/",
+    "descricao": "Motorhomes personalizados; em atividade desde 1993.",
+    "apelidos": [
+      "vettura"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Monte Carlo Motorhomes",
+    "categorias": [
+      "Motorhomes e vans",
+      "Campers",
+      "Trailers"
+    ],
+    "local": "",
+    "uf": "",
+    "site": "https://montecarlomotorhomes.com.br/",
+    "descricao": "Motorhomes, vans, campers e trailers; em atividade desde 2017.",
+    "apelidos": [
+      "monte carlo"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Santa Motorhome",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "",
+    "uf": "",
+    "site": "https://santamotorhome.com.br/",
+    "descricao": "Motorhomes, com blog de dicas de viagem.",
+    "apelidos": [
+      "santa motorhome"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Victória Motor Homes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Araquari (SC)",
+    "uf": "SC",
+    "site": "https://victoriamotorhomes.com.br/",
+    "descricao": "Motorhomes customizados; em atividade desde 2008.",
+    "apelidos": [
+      "victória motor",
+      "victoria motor"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Trailercar",
+    "categorias": [
+      "Motorhomes e vans",
+      "Trailers"
+    ],
+    "local": "Lages (SC)",
+    "uf": "SC",
+    "site": "https://trailercarmotorhome.com/",
+    "descricao": "Motorhomes sob medida, trailers e locação; desde 1980.",
+    "apelidos": [
+      "trailercar"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Vegini Motorhome",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Massaranduba (SC)",
+    "uf": "SC",
+    "site": "https://www.vegini.com.br/",
+    "descricao": "Fabricante de motorhomes.",
+    "apelidos": [
+      "vegini"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Trailemar Motor Homes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Campo Largo (PR)",
+    "uf": "PR",
+    "site": "http://www.trailemar.com.br/",
+    "descricao": "Motorhomes e veículos especiais.",
+    "apelidos": [
+      "trailemar"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Estrella Mobil Motorhomes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Santa Branca (SP)",
+    "uf": "SP",
+    "site": "http://www.estrella-mobil.com.br/",
+    "descricao": "Fabricante de motorhomes.",
+    "apelidos": [
+      "estrella mobil"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Patagônia Motorhomes",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Poá (SP)",
+    "uf": "SP",
+    "site": "https://patagoniamh.com.br/",
+    "descricao": "Fabricante de motorhomes.",
+    "apelidos": [
+      "patagônia motorhomes",
+      "patagonia motorhomes"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Atacama Motorhome",
+    "categorias": [
+      "Motorhomes e vans"
+    ],
+    "local": "Três Passos (RS)",
+    "uf": "RS",
+    "site": "http://www.atacamamotorhome.com.br/",
+    "descricao": "Fabricante de motorhomes.",
+    "apelidos": [
+      "atacama motorhome"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Duaron",
+    "categorias": [
+      "Campers",
+      "Trailers",
+      "Motorhomes e vans"
+    ],
+    "local": "Rio do Sul (SC)",
+    "uf": "SC",
+    "site": "https://camperduaron.com.br/",
+    "descricao": "Pioneira em campers para picape no Brasil; também trailers e motorhomes.",
+    "apelidos": [
+      "duaron"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "THAC Campers",
+    "categorias": [
+      "Campers"
+    ],
+    "local": "Nova Aurora (PR)",
+    "uf": "PR",
+    "site": "http://www.thaccampers.com.br/",
+    "descricao": "Campers pop-up, hardtop e flatbed para picapes.",
+    "apelidos": [
+      "thac"
+    ],
+    "lancamento_nacional": true
+  },
+  {
+    "nome": "Itu Trailer",
+    "categorias": [
+      "Revendas e importadores"
+    ],
+    "local": "Itu (SP)",
+    "uf": "SP",
+    "site": "https://itutrailer.com.br/",
+    "descricao": "Revenda e importação de trailers e motorhomes de marcas estrangeiras.",
+    "apelidos": [
+      "itu trailer"
+    ],
+    "lancamento_nacional": false
+  }
+]

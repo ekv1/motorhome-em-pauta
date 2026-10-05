@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Notícias, novidades internacionais, guias e histórias sobre motorhomes, trailers, campers e caravanismo.">
+<meta name="description" content="Notícias, lançamentos nacionais, novidades internacionais, guias e histórias sobre motorhomes, trailers, campers e caravanismo.">
 <title>Motorhome em Pauta | As notícias que movem o caravanismo</title>
 <link rel="stylesheet" href="estilo.css">
 </head>
@@ -25,6 +25,18 @@
 </section>
 
 <main>
+  <section id="lancamentos" class="faixa lancamentos" hidden>
+    <div class="largura">
+      <div class="cabecalho">
+        <p class="chapeu-lanc">Indústria nacional em movimento</p>
+        <h2>Lançamentos nacionais <span class="feito-br">Feito no Brasil</span></h2>
+        <p>Novos modelos de fabricantes brasileiros.</p>
+      </div>
+      <div id="filtros-lanc" class="filtros filtros-escuros" role="toolbar" aria-label="Filtrar lançamentos"></div>
+      <div id="grade-lanc" class="grade grade-lanc"></div>
+    </div>
+  </section>
+
   <section id="ultimas" class="faixa escura">
     <div class="largura">
       <div class="cabecalho"><h2>Últimas notícias</h2><p>O que acontece no caravanismo brasileiro.</p></div>
@@ -54,6 +66,16 @@
     <div class="largura">
       <div class="cabecalho"><h2>Histórias e comunidade</h2><p>Pessoas, grupos e encontros que fazem o caravanismo.</p></div>
       <div class="grade" data-categoria="Histórias e comunidade"></div>
+    </div>
+  </section>
+
+  <section id="fabricantes" class="faixa petroleo">
+    <div class="largura destaque-fab">
+      <div>
+        <h2>Fabricantes brasileiros</h2>
+        <p>Conheça quem constrói trailers, motorhomes, vans e campers no Brasil, com link para o site oficial de cada empresa.</p>
+      </div>
+      <div id="nomes-fab" class="nomes-fab"></div>
     </div>
   </section>
 </main>
