@@ -6,7 +6,12 @@
     "resumo": "Apolo Trailer participará da Expo Rodantear em Tigre, Argentina, de 22 a 25 de outubro.",
     "fonte": "Apolo Trailer",
     "link": "https://apolotrailer.com.br/apolo-trailer-na-expo-rodantear/",
-    "origem": "fabricante"
+    "origem": "fabricante",
+    "imagem": "imagens/eventos/expo-rodantear.png",
+    "imagem_alt": "Feira de caravanismo com motorhomes, trailers, campers e vans em exposição",
+    "imagem_legenda": "Imagem ilustrativa",
+    "imagem_credito": "Visual gerado com Microsoft Copilot para o Motorhome em Pauta.",
+    "site_evento": "https://exporodantear.com/"
   },
   {
     "titulo": "Acampa-MS inaugura ponto de apoio em Porto Murtinho com participação da Anacamp",

@@ -47,6 +47,7 @@ CAMPOS_OPCIONAIS = {
     "imagem_credito",
     "slug",
     "corpo",
+    "site_evento",
 }
 
 

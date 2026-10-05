@@ -658,6 +658,22 @@ def main():
                 previa["origem"] = "fabricante"
 
             previa = enriquecer_lancamento(previa)
+
+            titulo_evento = previa.get("titulo", "").casefold()
+            if "rodantear" in titulo_evento:
+                previa["categoria_sugerida"] = "Eventos e feiras"
+                previa["site_evento"] = "https://exporodantear.com/"
+                previa["imagem"] = "imagens/eventos/expo-rodantear.png"
+                previa["imagem_alt"] = (
+                    "Feira de caravanismo com motorhomes, trailers, "
+                    "campers e vans em exposição"
+                )
+                previa["imagem_legenda"] = "Imagem ilustrativa"
+                previa["imagem_credito"] = (
+                    "Visual gerado com Microsoft Copilot para o "
+                    "Motorhome em Pauta."
+                )
+
             previas.append(previa)
 
         elif resultado == "rejeitada":

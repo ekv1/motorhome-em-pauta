@@ -97,6 +97,10 @@ function esconderMenuLancamentos() {
 
 function destinoDoItem(item) {
   if (texto(item.slug) && item.corpo) return { url: "materia.html?id=" + encodeURIComponent(item.slug), externo: false };
+  const siteEvento = linkSeguro(item.site_evento);
+  if (item.categoria_sugerida === "Eventos e feiras" && siteEvento) {
+    return { url: siteEvento, externo: true };
+  }
   const fonte = linkSeguro(item.link);
   return fonte ? { url: fonte, externo: true } : null;
 }
