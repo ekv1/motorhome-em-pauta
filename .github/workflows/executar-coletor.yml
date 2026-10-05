@@ -8,7 +8,6 @@ on:
         type: boolean
         required: false
         default: false
-
   schedule:
     - cron: "30 21 * * *"
 
@@ -41,36 +40,28 @@ jobs:
           from urllib.parse import urlparse
 
           arquivo_rascunhos = Path("rascunhos-coletor.json")
-
           if not arquivo_rascunhos.exists():
               print("Nenhum rascunho gerado; nada a comparar.")
               raise SystemExit(0)
 
-          publicados = json.loads(
-              Path("noticias.json").read_text(encoding="utf-8")
-          )
-          rascunhos = json.loads(
-              arquivo_rascunhos.read_text(encoding="utf-8")
-          )
-
+          publicados = json.loads(Path("noticias.json").read_text(encoding="utf-8"))
+          rascunhos = json.loads(arquivo_rascunhos.read_text(encoding="utf-8"))
           if not isinstance(publicados, list):
               raise SystemExit("ERRO: noticias.json nao e uma lista.")
-
           if not isinstance(rascunhos, list):
               raise SystemExit("ERRO: rascunhos nao sao uma lista.")
 
           links_publicados = {
-              item["link"]
-              for item in publicados
-              if isinstance(item, dict)
-              and isinstance(item.get("link"), str)
+              item["link"] for item in publicados
+              if isinstance(item, dict) and isinstance(item.get("link"), str)
           }
-
           campos = ("titulo", "data", "resumo", "fonte", "link")
           categorias_exibidas = (
               "Últimas notícias",
+              "Eventos e feiras",
               "Histórias e comunidade",
               "Guias e vida a bordo",
+              "Novidades internacionais",
           )
 
           vistos_nesta_execucao = set()
@@ -80,41 +71,21 @@ jobs:
 
           for numero, item in enumerate(rascunhos, start=1):
               if not isinstance(item, dict):
-                  raise SystemExit(
-                      f"ERRO: rascunho {numero} nao e um objeto."
-                  )
-
-              if any(
-                  not isinstance(item.get(campo), str)
-                  or not item[campo].strip()
-                  for campo in campos
-              ):
-                  raise SystemExit(
-                      f"ERRO: rascunho {numero} tem campo ausente."
-                  )
+                  raise SystemExit(f"ERRO: rascunho {numero} nao e um objeto.")
+              if any(not isinstance(item.get(campo), str) or not item[campo].strip() for campo in campos):
+                  raise SystemExit(f"ERRO: rascunho {numero} tem campo ausente.")
 
               link = item["link"].strip()
               endereco = urlparse(link)
-
               if endereco.scheme != "https" or not endereco.netloc:
-                  raise SystemExit(
-                      f"ERRO: rascunho {numero} tem link invalido."
-                  )
-
-              if (
-                  link in links_publicados
-                  or link in vistos_nesta_execucao
-              ):
+                  raise SystemExit(f"ERRO: rascunho {numero} tem link invalido.")
+              if link in links_publicados or link in vistos_nesta_execucao:
                   duplicados += 1
                   print("DUPLICADO:", item["titulo"])
                   continue
 
               vistos_nesta_execucao.add(link)
-
-              if (
-                  item.get("categoria_sugerida")
-                  not in categorias_exibidas
-              ):
+              if item.get("categoria_sugerida") not in categorias_exibidas:
                   em_revisao += 1
                   print("CATEGORIA A REVISAR:", item["titulo"])
                   continue
@@ -129,14 +100,9 @@ jobs:
 
           if pendentes:
               Path("pendentes-conferencia.json").write_text(
-                  json.dumps(
-                      pendentes,
-                      ensure_ascii=False,
-                      indent=2,
-                  ) + "\n",
+                  json.dumps(pendentes, ensure_ascii=False, indent=2) + "\n",
                   encoding="utf-8",
               )
-
           print("noticias.json nao foi alterado.")
           PY
 
