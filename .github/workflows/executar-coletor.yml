@@ -14,8 +14,9 @@ on:
         required: false
         default: false
   schedule:
-    # 08:30 no horario de Brasilia (11:30 UTC).
-    - cron: "30 11 * * *"
+    # 08:30, 13:30 e 18:30 no horario de Brasilia (UTC-3).
+    # O GitHub Actions interpreta o cron em UTC.
+    - cron: "30 11,16,21 * * *"
 
 permissions:
   contents: write
