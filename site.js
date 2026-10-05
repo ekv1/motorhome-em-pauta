@@ -4,6 +4,7 @@
 const SECOES = [
   ["Lançamentos", "index.html#lancamentos"],
   ["Notícias", "index.html#ultimas"],
+  ["Eventos", "index.html#eventos"],
   ["Internacionais", "index.html#internacionais"],
   ["Guias", "index.html#guias"],
   ["Comunidade", "index.html#comunidade"],
@@ -12,6 +13,7 @@ const SECOES = [
 
 const IMAGEM_PADRAO = {
   "Últimas notícias": "imagens/capa-estrada.png",
+  "Eventos e feiras": "imagens/padrao-comunidade.png",
   "Novidades internacionais": "imagens/ilustrativa-veiculos.png",
   "Guias e vida a bordo": "imagens/guia-organizar.png",
   "Histórias e comunidade": "imagens/padrao-comunidade.png"
@@ -19,6 +21,7 @@ const IMAGEM_PADRAO = {
 
 const ROTULO = {
   "Últimas notícias": "Brasil",
+  "Eventos e feiras": "Evento",
   "Novidades internacionais": "Internacional",
   "Guias e vida a bordo": "Guia",
   "Histórias e comunidade": "Comunidade"

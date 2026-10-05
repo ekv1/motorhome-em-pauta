@@ -35,6 +35,13 @@ section[id]{scroll-margin-top:80px}
 .areia .cabecalho h2{color:var(--texto)}
 .areia .cabecalho p{color:var(--cinza)}
 
+/* Eventos e feiras */
+.eventos{background:linear-gradient(135deg,#6f331f,#a64b27)}
+.eventos .cabecalho h2{color:#fff}
+.eventos .cabecalho p{color:#f2d8cc}
+.chapeu-eventos{color:#ffd3a6 !important;letter-spacing:.15em;text-transform:uppercase;font-size:.78rem;margin:0 0 8px !important}
+.eventos .selo{background:var(--laranja)}
+
 .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
 .cartao{display:flex;flex-direction:column;background:#fff;border-radius:14px;overflow:hidden;text-decoration:none;color:var(--texto);
   box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .2s,box-shadow .2s}

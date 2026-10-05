@@ -362,6 +362,24 @@ def sugerir_categoria(titulo):
         "despesas",
     )
 
+    termos_eventos = (
+        "expo",
+        "feira",
+        "encontro",
+        "encontrinho",
+        "festival",
+        "rodantear",
+        "caravan salon",
+        "salão",
+        "salao",
+    )
+
+    if any(
+        termo in titulo_normalizado
+        for termo in termos_eventos
+    ):
+        return "Eventos e feiras"
+
     if any(
         termo in titulo_normalizado
         for termo in termos_historicos
