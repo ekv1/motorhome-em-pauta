@@ -1,346 +1,75 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description"
-        content="Notícias, histórias e guias sobre motorhomes, trailers e caravanismo no Brasil.">
-  <title>Motorhome em Pauta</title>
-
-  <style>
-    :root {
-      color-scheme: light;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #183047;
-      background: #f3f6f5;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-    }
-
-    header {
-      background: #123b52;
-      color: #ffffff;
-      padding: 42px 20px;
-    }
-
-    .largura {
-      max-width: 980px;
-      margin: 0 auto;
-    }
-
-    .marca {
-      margin: 0 0 8px;
-      font-size: 2rem;
-    }
-
-    .slogan {
-      margin: 0;
-      color: #d9e8eb;
-      font-size: 1.05rem;
-    }
-
-    main {
-      padding: 38px 20px 60px;
-    }
-
-    section {
-      margin-bottom: 42px;
-    }
-
-    h2 {
-      margin: 0 0 8px;
-    }
-
-    .introducao {
-      color: #526473;
-      line-height: 1.6;
-      margin: 0 0 22px;
-    }
-
-    .lista {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 18px;
-    }
-
-    .cartao,
-    .mensagem {
-      background: #ffffff;
-      border: 1px solid #e0e8e8;
-      border-radius: 12px;
-      padding: 24px;
-    }
-
-    .cartao {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .data {
-      color: #557081;
-      font-size: 0.9rem;
-      margin: 0 0 12px;
-    }
-
-    .cartao h3 {
-      font-size: 1.25rem;
-      line-height: 1.35;
-      margin: 0 0 14px;
-    }
-
-    .resumo {
-      line-height: 1.6;
-      margin: 0 0 20px;
-    }
-
-    .fonte {
-      color: #526473;
-      font-size: 0.9rem;
-      margin-top: auto;
-    }
-
-    a {
-      color: #086b75;
-      font-weight: bold;
-    }
-
-    a:focus-visible {
-      outline: 3px solid #e6a23c;
-      outline-offset: 3px;
-    }
-
-    .mensagem {
-      line-height: 1.6;
-    }
-
-    footer {
-      border-top: 1px solid #dce5e5;
-      color: #526473;
-      font-size: 0.9rem;
-      line-height: 1.6;
-      padding: 25px 20px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Notícias, novidades internacionais, guias e histórias sobre motorhomes, trailers, campers e caravanismo.">
+<title>Motorhome em Pauta | As notícias que movem o caravanismo</title>
+<link rel="stylesheet" href="estilo.css">
 </head>
-
 <body>
-  <header>
+<header class="topo">
+  <div class="largura topo-linha">
+    <div class="logo"><span class="logo-sol"></span><span><strong>Motorhome</strong> em Pauta</span></div>
+    <nav id="menu" class="menu" aria-label="Seções"></nav>
+  </div>
+</header>
+
+<section class="capa">
+  <div class="largura capa-texto">
+    <p class="chapeu">Notícias · Destinos · Caravanismo</p>
+    <h1>A estrada sempre revela um novo horizonte</h1>
+    <p class="capa-sub">Notícias, novidades, guias e histórias para quem acredita que a vida é mais bonita sobre rodas.</p>
+    <div id="capa-acao"></div>
+  </div>
+</section>
+
+<main>
+  <section id="ultimas" class="faixa escura">
     <div class="largura">
-      <h1 class="marca">Motorhome em Pauta</h1>
-      <p class="slogan">As notícias que movem o caravanismo.</p>
+      <div class="cabecalho"><h2>Últimas notícias</h2><p>O que acontece no caravanismo brasileiro.</p></div>
+      <div class="grade" data-categoria="Últimas notícias"></div>
     </div>
-  </header>
+  </section>
 
-  <main class="largura">
-    <section aria-labelledby="titulo-noticias">
-      <h2 id="titulo-noticias">Últimas notícias</h2>
-      <p class="introducao">
-        Novidades sobre motorhomes, trailers e caravanismo,
-        com acesso à publicação original.
-      </p>
-      <div id="noticias" class="lista" aria-live="polite">
-        <div class="mensagem">Carregando notícias...</div>
+  <section id="internacionais" class="faixa petroleo">
+    <div class="largura internacional">
+      <div class="intro-int">
+        <span class="globo">🌎</span>
+        <h2>Novidades internacionais</h2>
+        <p>Lançamentos de veículos e equipamentos no exterior, explicados em português para o leitor brasileiro.</p>
       </div>
-    </section>
+      <div class="grade" data-categoria="Novidades internacionais"></div>
+    </div>
+  </section>
 
-    <section aria-labelledby="titulo-historias">
-      <h2 id="titulo-historias">Histórias e comunidade</h2>
-      <p class="introducao">
-        Trajetórias, grupos e experiências da comunidade caravanista.
-      </p>
-      <div id="historias" class="lista" aria-live="polite">
-        <div class="mensagem">Carregando histórias...</div>
-      </div>
-    </section>
-
-    <section aria-labelledby="titulo-guias">
-      <h2 id="titulo-guias">Guias e vida a bordo</h2>
-      <p class="introducao">
-        Custos, manutenção e informações práticas para quem viaja
-        de motorhome ou trailer.
-      </p>
-      <div id="guias" class="lista" aria-live="polite">
-        <div class="mensagem">Carregando guias...</div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
+  <section id="guias" class="faixa escura">
     <div class="largura">
-      Os resumos poderão ser produzidos com apoio de inteligência artificial.
-      Antes de viajar, confirme preços, funcionamento, estrutura e regras
-      diretamente com os responsáveis. A data exibida é a da fonte original.
+      <div class="cabecalho"><h2>Guias e vida a bordo</h2><p>Dicas práticas para viajar melhor.</p></div>
+      <div class="grade" data-categoria="Guias e vida a bordo"></div>
     </div>
-  </footer>
+  </section>
 
-  <script>
-    const areaNoticias = document.getElementById("noticias");
-    const areaHistorias = document.getElementById("historias");
-    const areaGuias = document.getElementById("guias");
+  <section id="comunidade" class="faixa areia">
+    <div class="largura">
+      <div class="cabecalho"><h2>Histórias e comunidade</h2><p>Pessoas, grupos e encontros que fazem o caravanismo.</p></div>
+      <div class="grade" data-categoria="Histórias e comunidade"></div>
+    </div>
+  </section>
+</main>
 
-    function mostrarMensagem(area, texto) {
-      area.replaceChildren();
+<footer class="rodape">
+  <div class="largura rodape-linha">
+    <div>
+      <div class="logo"><span class="logo-sol"></span><span><strong>Motorhome</strong> em Pauta</span></div>
+      <p class="lema">Viagens · Liberdade · Histórias reais</p>
+    </div>
+    <nav id="menu-rodape" class="menu-rodape" aria-label="Rodapé"></nav>
+    <p class="aviso">Matérias produzidas com apoio de IA a partir das fontes indicadas. Confirme preços, regras e condições diretamente com os responsáveis antes de viajar.</p>
+  </div>
+  <p class="copy">© 2026 Motorhome em Pauta · Viver é estrada.</p>
+</footer>
 
-      const caixa = document.createElement("div");
-      caixa.className = "mensagem";
-      caixa.textContent = texto;
-
-      area.appendChild(caixa);
-    }
-
-    function textoValido(valor) {
-      return typeof valor === "string" && valor.trim().length > 0;
-    }
-
-    function criarCartao(item) {
-      if (
-        !textoValido(item.titulo) ||
-        !textoValido(item.data) ||
-        !textoValido(item.resumo) ||
-        !textoValido(item.fonte) ||
-        !textoValido(item.link)
-      ) {
-        return null;
-      }
-
-      let destino;
-
-      try {
-        destino = new URL(item.link);
-
-        if (destino.protocol !== "https:") {
-          return null;
-        }
-      } catch {
-        return null;
-      }
-
-      const cartao = document.createElement("article");
-      cartao.className = "cartao";
-
-      const data = document.createElement("p");
-      data.className = "data";
-      data.textContent = item.data;
-
-      const titulo = document.createElement("h3");
-      titulo.textContent = item.titulo;
-
-      const resumo = document.createElement("p");
-      resumo.className = "resumo";
-      resumo.textContent = item.resumo;
-
-      const fonte = document.createElement("p");
-      fonte.className = "fonte";
-      fonte.textContent = "Fonte: " + item.fonte + " · ";
-
-      const link = document.createElement("a");
-      link.href = destino.href;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = "Ler publicação original";
-
-      fonte.appendChild(link);
-      cartao.append(data, titulo, resumo, fonte);
-
-      return cartao;
-    }
-
-    function exibirItens(area, itens, mensagemVazia) {
-      const cartoes = itens
-        .map(criarCartao)
-        .filter(cartao => cartao !== null);
-
-      if (cartoes.length === 0) {
-        mostrarMensagem(area, mensagemVazia);
-        return;
-      }
-
-      area.replaceChildren(...cartoes);
-    }
-
-    async function carregarConteudo() {
-      try {
-        const resposta = await fetch("./noticias.json", {
-          cache: "no-store"
-        });
-
-        if (!resposta.ok) {
-          throw new Error("Falha ao carregar noticias.json");
-        }
-
-        const registros = await resposta.json();
-
-        if (!Array.isArray(registros)) {
-          throw new Error("Formato inesperado de noticias.json");
-        }
-
-        const noticias = [];
-        const historias = [];
-        const guias = [];
-
-        for (const item of registros) {
-          if (!item || typeof item !== "object") {
-            continue;
-          }
-
-          if (item.categoria_sugerida === "Histórias e comunidade") {
-            historias.push(item);
-          } else if (item.categoria_sugerida === "Guias e vida a bordo") {
-            guias.push(item);
-          } else if (
-            item.categoria_sugerida === "Últimas notícias" ||
-            !item.categoria_sugerida
-          ) {
-            // Mantém compatibilidade com o primeiro cartão publicado.
-            noticias.push(item);
-          }
-          // "Categoria a revisar" permanece fora do site.
-        }
-
-        exibirItens(
-          areaNoticias,
-          noticias,
-          "Nenhuma notícia publicada nesta seção."
-        );
-
-        exibirItens(
-          areaHistorias,
-          historias,
-          "Nenhuma história publicada nesta seção."
-        );
-
-        exibirItens(
-          areaGuias,
-          guias,
-          "Nenhum guia publicado nesta seção."
-        );
-      } catch (erro) {
-        console.error("Erro ao carregar conteúdo:", erro);
-
-        mostrarMensagem(
-          areaNoticias,
-          "Não foi possível carregar as notícias neste momento."
-        );
-
-        mostrarMensagem(
-          areaHistorias,
-          "Não foi possível carregar as histórias neste momento."
-        );
-
-        mostrarMensagem(
-          areaGuias,
-          "Não foi possível carregar os guias neste momento."
-        );
-      }
-    }
-
-    carregarConteudo();
-  </script>
+<script src="site.js"></script>
 </body>
 </html>
