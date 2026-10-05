@@ -1,112 +1,142 @@
-name: Executar coletor em teste
+name: Coletar e publicar noticias
 
 on:
   workflow_dispatch:
     inputs:
+      publicar_automaticamente:
+        description: "Publicar no site apos as validacoes"
+        type: boolean
+        required: false
+        default: false
       gerar_previa_internacional:
         description: "Gerar previa internacional para conferencia"
         type: boolean
         required: false
         default: false
   schedule:
-    - cron: "30 21 * * *"
+    # 08:30 no horario de Brasilia (11:30 UTC).
+    - cron: "30 11 * * *"
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: motorhome-em-pauta-publicacao
+  cancel-in-progress: false
 
 jobs:
-  testar:
+  coletar-publicar:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Ler arquivos do repositorio
         uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Instalar biblioteca do Groq
         run: python3 -m pip install groq
 
-      - name: Executar coletor sem publicar
+      - name: Executar coletor
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set -o pipefail
           python3 coletor.py | tee resultado-coletor.txt
 
-      - name: Comparar rascunhos com noticias publicadas
+      - name: Validar rascunhos antes da publicacao
         run: |
           python3 - <<'PY'
           import json
           from pathlib import Path
           from urllib.parse import urlparse
 
-          arquivo_rascunhos = Path("rascunhos-coletor.json")
-          if not arquivo_rascunhos.exists():
-              print("Nenhum rascunho gerado; nada a comparar.")
+          arquivo = Path("rascunhos-coletor.json")
+          if not arquivo.exists():
+              print("Nenhum rascunho gerado; nada a validar.")
               raise SystemExit(0)
 
           publicados = json.loads(Path("noticias.json").read_text(encoding="utf-8"))
-          rascunhos = json.loads(arquivo_rascunhos.read_text(encoding="utf-8"))
-          if not isinstance(publicados, list):
-              raise SystemExit("ERRO: noticias.json nao e uma lista.")
-          if not isinstance(rascunhos, list):
-              raise SystemExit("ERRO: rascunhos nao sao uma lista.")
+          rascunhos = json.loads(arquivo.read_text(encoding="utf-8"))
+          if not isinstance(publicados, list) or not isinstance(rascunhos, list):
+              raise SystemExit("ERRO: arquivos JSON devem conter listas.")
 
           links_publicados = {
-              item["link"] for item in publicados
+              item["link"].strip().rstrip("/").casefold()
+              for item in publicados
               if isinstance(item, dict) and isinstance(item.get("link"), str)
           }
-          campos = ("titulo", "data", "resumo", "fonte", "link")
-          categorias_exibidas = (
+          categorias = {
               "Últimas notícias",
               "Eventos e feiras",
               "Histórias e comunidade",
               "Guias e vida a bordo",
               "Novidades internacionais",
-          )
-
-          vistos_nesta_execucao = set()
+          }
+          obrigatorios = ("titulo", "categoria_sugerida", "data", "resumo", "fonte", "link")
+          vistos = set()
           pendentes = []
-          duplicados = 0
-          em_revisao = 0
 
           for numero, item in enumerate(rascunhos, start=1):
               if not isinstance(item, dict):
-                  raise SystemExit(f"ERRO: rascunho {numero} nao e um objeto.")
-              if any(not isinstance(item.get(campo), str) or not item[campo].strip() for campo in campos):
+                  raise SystemExit(f"ERRO: rascunho {numero} nao e objeto.")
+              if any(not isinstance(item.get(c), str) or not item[c].strip() for c in obrigatorios):
                   raise SystemExit(f"ERRO: rascunho {numero} tem campo ausente.")
-
               link = item["link"].strip()
-              endereco = urlparse(link)
-              if endereco.scheme != "https" or not endereco.netloc:
+              url = urlparse(link)
+              if url.scheme != "https" or not url.netloc:
                   raise SystemExit(f"ERRO: rascunho {numero} tem link invalido.")
-              if link in links_publicados or link in vistos_nesta_execucao:
-                  duplicados += 1
+              chave = link.rstrip("/").casefold()
+              if chave in links_publicados or chave in vistos:
                   print("DUPLICADO:", item["titulo"])
                   continue
-
-              vistos_nesta_execucao.add(link)
-              if item.get("categoria_sugerida") not in categorias_exibidas:
-                  em_revisao += 1
+              if item["categoria_sugerida"] not in categorias:
                   print("CATEGORIA A REVISAR:", item["titulo"])
                   continue
-
+              if item.get("revisar_lancamento"):
+                  print("LANCAMENTO A REVISAR:", item["titulo"])
+                  continue
+              vistos.add(chave)
               pendentes.append(item)
-              print("PENDENTE DE CONFERENCIA:", item["titulo"])
-
-          print("Rascunhos encontrados:", len(rascunhos))
-          print("Duplicados:", duplicados)
-          print("Categorias a revisar:", em_revisao)
-          print("Pendentes de conferencia:", len(pendentes))
+              print("APROVADO PELAS REGRAS:", item["titulo"])
 
           if pendentes:
               Path("pendentes-conferencia.json").write_text(
                   json.dumps(pendentes, ensure_ascii=False, indent=2) + "\n",
                   encoding="utf-8",
               )
-          print("noticias.json nao foi alterado.")
+          print("Pendentes aprovados:", len(pendentes))
+          print("noticias.json ainda nao foi alterado.")
           PY
 
-      - name: Guardar resultado para conferencia
+      - name: Publicar noticias aprovadas
+        if: ${{ github.event_name == 'schedule' || inputs.publicar_automaticamente }}
+        run: python3 publicar_pendentes.py
+
+      - name: Salvar publicacao no repositorio
+        if: ${{ github.event_name == 'schedule' || inputs.publicar_automaticamente }}
+        run: |
+          if git diff --quiet -- noticias.json; then
+            echo "Nenhuma noticia nova para publicar."
+            exit 0
+          fi
+          git config user.name "motorhome-em-pauta-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add noticias.json
+          git commit -m "Publicar noticias coletadas automaticamente"
+          git push origin HEAD:main
+
+      - name: Gerar previa internacional sem publicar
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.gerar_previa_internacional }}
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          test -f internacionais.py
+          python3 internacionais.py
+
+      - name: Guardar resultado da coleta
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -115,7 +145,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Guardar rascunhos sem publicar
+      - name: Guardar rascunhos
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: rascunhos-coletor
@@ -123,7 +154,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Guardar pendentes para conferencia
+      - name: Guardar pendentes validados
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pendentes-conferencia
@@ -131,13 +163,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Preparar materia internacional sem publicar
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.gerar_previa_internacional }}
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          test -f internacionais.py
-          python3 internacionais.py
+      - name: Guardar resultado da publicacao
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultado-publicacao
+          path: resultado-publicacao.txt
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Guardar previa internacional
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.gerar_previa_internacional }}
