@@ -1,0 +1,118 @@
+name: Radar editorial - 5 opcoes para aprovacao
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 11,16,21 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: motorhome-em-pauta-radar-editorial
+  cancel-in-progress: false
+
+jobs:
+  preparar-opcoes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Instalar dependencias
+        run: python3 -m pip install groq
+
+      - name: Descobrir pautas em alta
+        run: |
+          set -o pipefail
+          python3 descobrir_tendencias.py | tee resultado-tendencias.txt
+
+      - name: Coletar fontes nacionais
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          set -o pipefail
+          python3 coletor.py | tee resultado-coletor.txt
+
+      - name: Coletar fontes internacionais
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          set -o pipefail
+          python3 coletar_internacionais.py | tee resultado-internacionais.txt
+
+      - name: Selecionar 5 opcoes com prioridade nacional e eventos
+        run: |
+          set -euo pipefail
+          python3 selecionar_pautas.py | tee resultado-selecao.txt
+          test -s pautas-selecionadas.json
+          test -s resumo-aprovacao.md
+
+      - name: Criar ou atualizar Pull Request com as opcoes
+        id: criar_pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Atualizar opcoes do radar editorial"
+          branch: aprovacao/pautas
+          base: main
+          delete-branch: true
+          title: "Cinco pautas aguardando escolha editorial"
+          body-path: resumo-aprovacao.md
+          labels: |
+            editorial
+            selecao-de-pauta
+            aguardando-escolha
+          add-paths: |
+            pautas-selecionadas.json
+            resumo-aprovacao.md
+
+      - name: Preparar e-mail com as opcoes
+        if: steps.criar_pr.outputs.pull-request-number != ''
+        env:
+          PR_URL: ${{ steps.criar_pr.outputs.pull-request-url }}
+        run: |
+          {
+            cat resumo-aprovacao.md
+            echo
+            echo "Escolha uma pauta no Pull Request:"
+            echo "$PR_URL"
+          } > email-aprovacao.txt
+
+      - name: Enviar e-mail com as opcoes
+        if: steps.criar_pr.outputs.pull-request-number != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Motorhome em Pauta | 5 pautas para escolher"
+          to: emerson.venarusso@dxc.com,emerson.venarusso@gmail.com
+          from: Motorhome em Pauta <${{ secrets.MAIL_USERNAME }}>
+          body: file://email-aprovacao.txt
+
+      - name: Guardar relatorios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-5-opcoes
+          path: |
+            resultado-tendencias.txt
+            resultado-coletor.txt
+            resultado-internacionais.txt
+            resultado-selecao.txt
+            pautas-descobertas.json
+            rascunhos-coletor.json
+            rascunhos-internacionais.json
+            pautas-selecionadas.json
+            resumo-aprovacao.md
+            email-aprovacao.txt
+          if-no-files-found: ignore
+          retention-days: 7
