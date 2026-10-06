@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "titulo": "RVIA introduz interruptores de monitoramento de aterramento em novos motorhomes a partir de 2028",
+    "resumo": "A RVIA vai equipar todos os motorhomes de 2028 com interruptores de monitoramento de aterramento (GMI), bloqueando energia de fontes com falhas de terra. A tecnologia ainda não tem confirmação de disponibilidade no Brasil, mas pode influenciar normas de segurança elétrica.",
+    "categoria_sugerida": "Novidades internacionais",
+    "slug": "rvia-introduz-interruptores-de-monitoramento-de-aterramento-em-novos-motorhomes-a-partir-de-2028",
+    "corpo": {
+      "abertura": "A RVIA, fabricante americana de equipamentos para veículos recreativos, anunciou que a partir do modelo de 2028 (já em produção em 2027) todos os novos motorhomes nos Estados Unidos contarão com interruptores de monitoramento de aterramento (GMIs). Esses dispositivos impedem que o veículo aceite energia de fontes com problemas de aterramento, aumentando a segurança elétrica.",
+      "secoes": [
+        {
+          "subtitulo": "O que foi anunciado",
+          "paragrafos": [
+            "A RVIA detalhou que os GMIs monitoram continuamente a qualidade do aterramento da fonte de energia à qual o motorhome está conectado, seja em concessionárias, campings ou outras instalações. Se forem detectados problemas de aterramento não resolvidos, o GMI bloqueia a entrada de energia, impedindo que os sistemas elétricos internos sejam alimentados."
+          ]
+        },
+        {
+          "subtitulo": "Como funciona o GMI",
+          "paragrafos": [
+            "O interruptor detecta falhas de terra antes que os equipamentos internos sejam acionados. Se a falha for identificada antes da operação, os dispositivos que dependem de energia não ligam; se for detectada durante a operação, eles são desligados. Isso evita sobrecargas e riscos de choque elétrico."
+          ]
+        },
+        {
+          "subtitulo": "Impacto potencial no Brasil",
+          "paragrafos": [
+            "Embora a RVIA não tenha confirmado a disponibilidade de motorhomes com GMI no mercado brasileiro, a introdução dessa tecnologia nos EUA pode pressionar fabricantes locais e importadores a adotarem padrões semelhantes. A norma brasileira de segurança elétrica para veículos recreativos ainda não contempla GMIs, mas a tendência de maior rigor pode levar a atualizações futuras."
+          ]
+        }
+      ],
+      "contexto_brasil": "Não há confirmação de que motorhomes equipados com GMIs estejam disponíveis no Brasil. A adoção da tecnologia dependerá de decisões de fabricantes locais e de possíveis alterações nas normas de segurança elétrica brasileiras."
+    },
+    "data": "06/10/2026",
+    "fonte": "RV PRO",
+    "link": "https://rv-pro.com/news/rvia-offers-dealership-resources-on-grounding-monitor-interrupters/",
+    "mercado": "Internacional",
+    "origem": "imprensa",
+    "pais_fonte": "Estados Unidos",
+    "pontuacao_editorial": 100,
+    "criterios_selecao": [
+      "relação direta 30/30",
+      "utilidade 20/20",
+      "qualidade dos fatos 15/15",
+      "atualidade 15/15",
+      "valor editorial 10/10",
+      "fonte e rastreabilidade 5/5",
+      "diversidade 5/5"
+    ],
+    "imagem": "imagens/noticias/rvia-introduz-interruptores-monitoramento-aterramento-novos-motorhomes-2028.jpg",
+    "imagem_alt": "Imagem ilustrativa relacionada à matéria: RVIA introduz interruptores de monitoramento de aterramento em novos motorhomes a partir de 2028",
+    "imagem_legenda": "Imagem gerada por inteligência artificial",
+    "imagem_credito": "Cloudflare Workers AI · FLUX.1 Schnell",
+    "imagem_origem": "gerada_por_ia",
+    "decisao_editorial": "aprovação automática",
+    "revisao_editorial": true,
+    "fontes_complementares": []
+  }
+]
