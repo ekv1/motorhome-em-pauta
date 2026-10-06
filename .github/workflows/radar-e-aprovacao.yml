@@ -1,94 +1,147 @@
-name: Radar editorial e aprovação
+name: Radar editorial e aprovacao
+
 on:
   workflow_dispatch:
   schedule:
+    # 08:30, 13:30 e 18:30 no horario de Brasilia (UTC-3).
     - cron: "30 11,16,21 * * *"
+
 permissions:
   contents: write
   pull-requests: write
+
 concurrency:
-  group: motorhome-aprovacao-editorial
+  group: motorhome-em-pauta-radar-editorial
   cancel-in-progress: false
+
 jobs:
   preparar:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v6
+      - name: Ler arquivos do repositorio
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
-      - name: Instalar dependências
-        run: python3 -m pip install groq requests
+
+      - name: Instalar dependencias
+        run: python3 -m pip install groq
+
       - name: Descobrir pautas em alta
-        run: python3 descobrir_tendencias.py
+        run: |
+          set -o pipefail
+          python3 descobrir_tendencias.py | tee resultado-tendencias.txt
+
       - name: Coletar fontes nacionais
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python3 coletor.py | tee resultado-coletor.txt
+        run: |
+          set -o pipefail
+          python3 coletor.py | tee resultado-coletor.txt
+
       - name: Coletar e redigir fontes internacionais
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python3 coletar_internacionais.py | tee resultado-internacionais.txt
+        run: |
+          set -o pipefail
+          python3 coletar_internacionais.py | tee resultado-internacionais.txt
+
       - name: Selecionar pauta e gerar imagem
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: python3 processar_publicacoes.py
-      - name: Preparar alteração para revisão
-        run: python3 preparar_publicacao.py
-      - name: Verificar se há matéria
-        id: materia
         run: |
-          python3 - <<'PY'
-          import json, pathlib, os
-          p=pathlib.Path('pendentes-conferencia.json')
-          ok=p.exists() and isinstance(json.loads(p.read_text(encoding='utf-8')),list) and len(json.loads(p.read_text(encoding='utf-8')))>0
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f'tem_materia={str(ok).lower()}\n')
-          PY
-      - name: Criar ou atualizar Pull Request de aprovação
-        if: steps.materia.outputs.tem_materia == 'true'
-        id: pr
+          set -o pipefail
+          python3 processar_publicacoes.py | tee resultado-processamento.txt
+
+      - name: Preparar alteracao para revisao
+        run: |
+          set -o pipefail
+          python3 preparar_publicacao.py | tee resultado-preparacao.txt
+
+      - name: Verificar se ha materia
+        id: verificar_materia
+        shell: bash
+        run: |
+          if [ -f "resumo-aprovacao.md" ] \
+            && [ -s "resumo-aprovacao.md" ] \
+            && [ -f "pendentes-conferencia.json" ] \
+            && [ -s "pendentes-conferencia.json" ]; then
+            echo "tem_materia=true" >> "$GITHUB_OUTPUT"
+            echo "Materia preparada para aprovacao."
+          else
+            echo "tem_materia=false" >> "$GITHUB_OUTPUT"
+            echo "Nenhuma materia atingiu os criterios editoriais."
+          fi
+
+      - name: Criar ou atualizar Pull Request de aprovacao
+        if: steps.verificar_materia.outputs.tem_materia == 'true'
+        id: criar_pr
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Preparar materia para aprovacao editorial"
           branch: aprovacao/editorial
+          base: main
           delete-branch: true
-          commit-message: "Preparar matéria para aprovação editorial"
-          title: "Aprovação editorial | Motorhome em Pauta"
+          title: "Materia aguardando aprovacao editorial"
           body-path: resumo-aprovacao.md
-          labels: aprovação-editorial
+          labels: |
+            editorial
+            aguardando-aprovacao
           add-paths: |
             noticias.json
             imagens/noticias/**
-            resumo-aprovacao.md
-      - name: Preparar e-mail de aprovação
-        if: steps.pr.outputs.pull-request-url != ''
+
+      - name: Preparar e-mail de aprovacao
+        if: >-
+          steps.verificar_materia.outputs.tem_materia == 'true' &&
+          steps.criar_pr.outputs.pull-request-number != ''
+        shell: bash
+        env:
+          PR_URL: ${{ steps.criar_pr.outputs.pull-request-url }}
         run: |
-          cat resumo-aprovacao.md > email-aprovacao.txt
-          printf '\n\nRevisar no GitHub: %s\n' '${{ steps.pr.outputs.pull-request-url }}' >> email-aprovacao.txt
-      - name: Enviar e-mail de aprovação
-        if: steps.pr.outputs.pull-request-url != ''
-        uses: dawidd6/action-send-mail@v6
+          {
+            cat resumo-aprovacao.md
+            echo
+            echo "Revisar e aprovar no GitHub:"
+            echo "$PR_URL"
+          } > email-aprovacao.txt
+
+      - name: Enviar e-mail de aprovacao
+        if: >-
+          steps.verificar_materia.outputs.tem_materia == 'true' &&
+          steps.criar_pr.outputs.pull-request-number != ''
+        uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           secure: true
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "Motorhome em Pauta | Matéria aguardando sua aprovação"
-          to: "emerson.venarusso@dxc.com,emerson.venarusso@gmail.com"
-          from: "Motorhome em Pauta <${{ secrets.MAIL_USERNAME }}>"
+          subject: "Motorhome em Pauta | Materia aguardando aprovacao"
+          to: emerson.venarusso@dxc.com,emerson.venarusso@gmail.com
+          from: Motorhome em Pauta <${{ secrets.MAIL_USERNAME }}>
           body: file://email-aprovacao.txt
-      - uses: actions/upload-artifact@v4
+
+      - name: Guardar relatorios para revisao
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: revisao-editorial
           path: |
-            resultado-*.txt
+            resultado-tendencias.txt
+            resultado-coletor.txt
+            resultado-internacionais.txt
+            resultado-processamento.txt
+            resultado-preparacao.txt
             pautas-descobertas.json
             rascunhos-coletor.json
+            rascunhos-internacionais.json
             pendentes-conferencia.json
             resumo-aprovacao.md
+            email-aprovacao.txt
           if-no-files-found: ignore
           retention-days: 7
