@@ -1,15 +1,16 @@
 name: Validar publicacao aprovada
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - noticias.json
       - imagens/noticias/**
+      - qualidade_editorial.py
+      - validar_materias.py
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - noticias.json
       - imagens/noticias/**
@@ -20,102 +21,13 @@ permissions:
 jobs:
   validar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
+    timeout-minutes: 10
     steps:
-      - name: Ler arquivos do repositorio
+      - name: Ler arquivos
         uses: actions/checkout@v6
 
-      - name: Validar noticias.json e imagens
-        run: |
-          python3 - <<'PY'
-          import json
-          from datetime import datetime
-          from pathlib import Path
-          from urllib.parse import urlparse
+      - name: Validar JSON
+        run: python3 -m json.tool noticias.json > /dev/null
 
-          caminho = Path("noticias.json")
-          if not caminho.is_file():
-              raise SystemExit("ERRO: noticias.json nao encontrado.")
-
-          itens = json.loads(caminho.read_text(encoding="utf-8"))
-          if not isinstance(itens, list):
-              raise SystemExit("ERRO: noticias.json deve conter uma lista.")
-
-          categorias = {
-              "Últimas notícias",
-              "Eventos e feiras",
-              "Histórias e comunidade",
-              "Guias e vida a bordo",
-              "Novidades internacionais",
-              "Equipamentos e tecnologia",
-              "Destinos e estrutura",
-          }
-
-          links = set()
-          slugs = set()
-          obrigatorios = (
-              "titulo",
-              "categoria_sugerida",
-              "data",
-              "resumo",
-              "fonte",
-              "link",
-          )
-
-          for numero, item in enumerate(itens, start=1):
-              if not isinstance(item, dict):
-                  raise SystemExit(f"ERRO: item {numero} nao e um objeto.")
-
-              for campo in obrigatorios:
-                  valor = item.get(campo)
-                  if not isinstance(valor, str) or not valor.strip():
-                      raise SystemExit(
-                          f"ERRO: item {numero} sem campo valido: {campo}."
-                      )
-
-              if item["categoria_sugerida"] not in categorias:
-                  raise SystemExit(
-                      f"ERRO: categoria invalida no item {numero}: "
-                      f"{item['categoria_sugerida']}"
-                  )
-
-              try:
-                  datetime.strptime(item["data"], "%d/%m/%Y")
-              except ValueError as erro:
-                  raise SystemExit(
-                      f"ERRO: data invalida no item {numero}: {item['data']}"
-                  ) from erro
-
-              endereco = urlparse(item["link"])
-              if endereco.scheme != "https" or not endereco.netloc:
-                  raise SystemExit(f"ERRO: link invalido no item {numero}.")
-
-              chave_link = item["link"].rstrip("/").casefold()
-              if chave_link in links:
-                  raise SystemExit(f"ERRO: link duplicado no item {numero}.")
-              links.add(chave_link)
-
-              slug = item.get("slug")
-              if slug:
-                  if not isinstance(slug, str):
-                      raise SystemExit(f"ERRO: slug invalido no item {numero}.")
-                  chave_slug = slug.strip().casefold()
-                  if chave_slug in slugs:
-                      raise SystemExit(f"ERRO: slug duplicado no item {numero}.")
-                  slugs.add(chave_slug)
-
-              imagem = item.get("imagem")
-              if imagem:
-                  if not isinstance(imagem, str):
-                      raise SystemExit(f"ERRO: imagem invalida no item {numero}.")
-                  if imagem.startswith("imagens/") and not Path(imagem).is_file():
-                      raise SystemExit(
-                          f"ERRO: imagem local nao encontrada no item {numero}: {imagem}"
-                      )
-
-          print("Validacao concluida.")
-          print("Itens:", len(itens))
-          print("Links unicos:", len(links))
-          print("Slugs unicos:", len(slugs))
-          PY
+      - name: Validar qualidade editorial completa
+        run: python3 validar_materias.py noticias.json
