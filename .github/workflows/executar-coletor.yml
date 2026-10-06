@@ -6,8 +6,6 @@ on:
         description: "Publicar apos as validacoes"
         type: boolean
         default: false
-  schedule:
-    - cron: "30 11,16,21 * * *"
 permissions:
   contents: write
 concurrency:
@@ -37,11 +35,19 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: python3 processar_publicacoes.py
       - name: Publicar
-        if: ${{ github.event_name == 'schedule' || inputs.publicar_automaticamente }}
+        if: ${{ inputs.publicar_automaticamente }}
         run: python3 publicar_pendentes.py
+
+      - name: Validar materia antes do commit
+        if: ${{ inputs.publicar_automaticamente }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool noticias.json > /dev/null
+          python3 validar_materias.py noticias.json
       - name: Commit e push
         id: commit
-        if: ${{ github.event_name == 'schedule' || inputs.publicar_automaticamente }}
+        if: ${{ inputs.publicar_automaticamente }}
         run: |
           if git diff --quiet -- noticias.json imagens/noticias; then echo "publicou=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           git config user.name "motorhome-em-pauta-bot"
