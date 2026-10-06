@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Arquivo de publicações do Motorhome em Pauta.">
+<title>Arquivo de publicações | Motorhome em Pauta</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="arquivo.css">
+</head>
+<body>
+<header class="topo"><div class="largura topo-linha"><a class="logo" href="index.html"><span class="logo-sol"></span><span><strong>Motorhome</strong> em Pauta</span></a><nav id="menu" class="menu" aria-label="Seções"></nav></div></header>
+<main class="arquivo-main">
+  <section class="arquivo-cabecalho"><div class="largura"><p class="chapeu">Biblioteca editorial</p><h1>Explore todas as publicações</h1><p>Pesquise notícias, guias, lançamentos, destinos e referências internacionais.</p></div></section>
+  <section class="largura arquivo-conteudo" aria-labelledby="titulo-resultados">
+    <form id="filtros-arquivo" class="arquivo-filtros" role="search">
+      <label for="busca-arquivo">Buscar</label>
+      <input id="busca-arquivo" name="q" type="search" placeholder="Título, resumo, marca ou assunto">
+      <label for="categoria-arquivo">Categoria</label>
+      <select id="categoria-arquivo" name="categoria"><option value="">Todas as categorias</option></select>
+      <label for="ano-arquivo">Ano</label>
+      <select id="ano-arquivo" name="ano"><option value="">Todos os anos</option></select>
+      <label for="ordem-arquivo">Ordenar</label>
+      <select id="ordem-arquivo" name="ordem"><option value="recentes">Mais recentes</option><option value="antigas">Mais antigas</option></select>
+      <button type="button" id="limpar-arquivo">Limpar filtros</button>
+    </form>
+    <div class="arquivo-barra"><h2 id="titulo-resultados">Publicações</h2><p id="contagem-arquivo" aria-live="polite"></p></div>
+    <div id="grade-arquivo" class="grade arquivo-grade"></div>
+    <nav id="paginacao-arquivo" class="paginacao" aria-label="Paginação do arquivo"></nav>
+  </section>
+</main>
+<footer class="rodape"><div class="largura rodape-linha"><div class="logo"><span class="logo-sol"></span><span><strong>Motorhome</strong> em Pauta</span></div><nav id="menu-rodape" class="menu-rodape" aria-label="Rodapé"></nav></div><p class="copy">© 2026 Motorhome em Pauta · Viver é estrada.</p></footer>
+<script src="site.js"></script>
+<script src="arquivo.js"></script>
+</body></html>

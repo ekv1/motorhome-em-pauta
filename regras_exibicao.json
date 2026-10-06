@@ -1,0 +1,15 @@
+{
+  "selo_novo_dias": 7,
+  "novidades_dias": 30,
+  "por_tipo": {
+    "noticia": 30,
+    "lancamento": 90,
+    "equipamento": 45,
+    "evento": 30,
+    "guia": 30,
+    "destino": 45,
+    "tendencia_internacional": 15
+  },
+  "itens_home_por_secao": 6,
+  "itens_por_pagina_arquivo": 12
+}
