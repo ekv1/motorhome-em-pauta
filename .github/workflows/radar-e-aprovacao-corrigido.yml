@@ -2,6 +2,7 @@ name: Radar editorial - 5 opcoes para aprovacao
 
 on:
   workflow_dispatch:
+
   schedule:
     - cron: "30 11,16,21 * * *"
 
@@ -25,39 +26,103 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Configurar Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
       - name: Instalar dependencias
+        shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --disable-pip-version-check \
+
+          python3 -m pip install \
+            --disable-pip-version-check \
+            --upgrade \
+            pip
+
+          python3 -m pip install \
             groq \
             requests \
             beautifulsoup4 \
-            googlenewsdecoder
+            "selectolax==0.4.13" \
+            "googlenewsdecoder==0.2.1"
+
+      - name: Verificar dependencias
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          import importlib.metadata
+
+          import groq
+          import requests
+          import bs4
+          import googlenewsdecoder
+          import selectolax
+
+          print("Dependencias importadas com sucesso.")
+          print(
+              "groq:",
+              importlib.metadata.version("groq"),
+          )
+          print(
+              "requests:",
+              importlib.metadata.version("requests"),
+          )
+          print(
+              "beautifulsoup4:",
+              importlib.metadata.version("beautifulsoup4"),
+          )
+          print(
+              "selectolax:",
+              importlib.metadata.version("selectolax"),
+          )
+          print(
+              "googlenewsdecoder:",
+              importlib.metadata.version(
+                  "googlenewsdecoder"
+              ),
+          )
+          PY
 
       - name: Descobrir pautas em alta
+        shell: bash
         run: |
-          set -o pipefail
-          python3 descobrir_tendencias.py | tee resultado-tendencias.txt
+          set -euo pipefail
+
+          python3 descobrir_tendencias.py \
+            | tee resultado-tendencias.txt
 
       - name: Coletar fontes nacionais
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        shell: bash
         run: |
-          set -o pipefail
-          python3 coletor.py | tee resultado-coletor.txt
+          set -euo pipefail
+
+          python3 coletor.py \
+            | tee resultado-coletor.txt
 
       - name: Coletar fontes internacionais
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          set -o pipefail
-          python3 coletar_internacionais.py | tee resultado-internacionais.txt
-
-      - name: Verificar arquivos de entrada
         shell: bash
         run: |
           set -euo pipefail
+
+          python3 coletar_internacionais.py \
+            | tee resultado-internacionais.txt
+
+      - name: Verificar arquivos produzidos
+        shell: bash
+        run: |
+          set -euo pipefail
+
           encontrados=0
+
           for arquivo in \
             pautas-descobertas.json \
             rascunhos-coletor.json \
@@ -65,22 +130,31 @@ jobs:
             pendentes-conferencia.json
           do
             if [ -s "$arquivo" ]; then
-              echo "ENTRADA: $arquivo"
+              echo "OK: $arquivo"
               encontrados=$((encontrados + 1))
             else
               echo "AUSENTE OU VAZIO: $arquivo"
             fi
           done
+
           if [ "$encontrados" -eq 0 ]; then
             echo "ERRO: nenhum arquivo de coleta foi produzido."
             exit 1
           fi
 
-      - name: Selecionar 5 opcoes qualificadas
+      - name: Selecionar cinco opcoes qualificadas
         shell: bash
         run: |
           set -euo pipefail
-          python3 selecionar_pautas.py | tee resultado-selecao.txt
+
+          rm -f \
+            pautas-selecionadas.json \
+            resumo-aprovacao.md \
+            resultado-qualificacao-pautas.txt
+
+          python3 selecionar_pautas.py \
+            | tee resultado-selecao.txt
+
           test -s pautas-selecionadas.json
           test -s resumo-aprovacao.md
 
@@ -88,14 +162,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m json.tool pautas-selecionadas.json > /dev/null
-          python3 validar_pautas.py pautas-selecionadas.json
 
-      - name: Preservar conteudo do e-mail antes do Pull Request
+          python3 -m json.tool \
+            pautas-selecionadas.json \
+            > /dev/null
+
+          python3 validar_pautas.py \
+            pautas-selecionadas.json
+
+      - name: Preservar conteudo do email
         shell: bash
         run: |
           set -euo pipefail
-          cp resumo-aprovacao.md /tmp/email-aprovacao.txt
+
+          cp \
+            resumo-aprovacao.md \
+            /tmp/email-aprovacao.txt
+
           test -s /tmp/email-aprovacao.txt
 
       - name: Criar ou atualizar Pull Request com as opcoes
@@ -117,22 +200,27 @@ jobs:
             pautas-selecionadas.json
             resumo-aprovacao.md
 
-      - name: Preparar e-mail com as opcoes
+      - name: Preparar email com as opcoes
         if: steps.criar_pr.outputs.pull-request-number != ''
         env:
           PR_URL: ${{ steps.criar_pr.outputs.pull-request-url }}
         shell: bash
         run: |
           set -euo pipefail
+
           {
             echo
             echo "Escolha uma pauta no Pull Request:"
             echo "$PR_URL"
           } >> /tmp/email-aprovacao.txt
-          cp /tmp/email-aprovacao.txt email-aprovacao.txt
+
+          cp \
+            /tmp/email-aprovacao.txt \
+            email-aprovacao.txt
+
           test -s email-aprovacao.txt
 
-      - name: Enviar e-mail com as opcoes
+      - name: Enviar email com as opcoes
         if: steps.criar_pr.outputs.pull-request-number != ''
         uses: dawidd6/action-send-mail@v3
         with:
@@ -150,19 +238,4 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: radar-5-opcoes
-          path: |
-            resultado-tendencias.txt
-            resultado-coletor.txt
-            resultado-internacionais.txt
-            resultado-selecao.txt
-            resultado-qualificacao-pautas.txt
-            pautas-descobertas.json
-            rascunhos-coletor.json
-            rascunhos-internacionais.json
-            pendentes-conferencia.json
-            pautas-selecionadas.json
-            resumo-aprovacao.md
-            email-aprovacao.txt
-          if-no-files-found: ignore
-          retention-days: 7
+          name: 
