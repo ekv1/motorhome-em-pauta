@@ -1,0 +1,149 @@
+name: Refazer materia por comentario
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: refazer-materia-pr-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  refazer:
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/refazer') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Obter dados do Pull Request
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > pr.json
+          HEAD_REF=$(jq -r '.head.ref' pr.json)
+          HEAD_REPO=$(jq -r '.head.repo.full_name' pr.json)
+          BASE_REF=$(jq -r '.base.ref' pr.json)
+
+          if [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
+            echo "Este fluxo aceita apenas Pull Requests com branch no mesmo repositorio."
+            exit 1
+          fi
+
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$BASE_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Ler branch editorial
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Registrar orientacao do editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -r '.comment.body' "$GITHUB_EVENT_PATH" \
+            | sed '1s#^/refazer[[:space:]]*##' \
+            > orientacao-refazer.txt
+
+          if [ ! -s orientacao-refazer.txt ]; then
+            echo "Use: /refazer seguido da orientacao editorial."
+            exit 1
+          fi
+
+      - name: Instalar dependencias
+        run: python3 -m pip install groq
+
+      - name: Refazer materia e imagem
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python3 refazer_materia.py --instruction-file orientacao-refazer.txt
+
+      - name: Validar arquivos refeitos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile refazer_materia.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          dados = json.loads(Path("noticias.json").read_text(encoding="utf-8"))
+          assert isinstance(dados, list), "noticias.json deve conter uma lista"
+          assert dados, "noticias.json ficou vazio"
+          assert Path("resumo-refazer.md").is_file(), "resumo-refazer.md ausente"
+          print("Validacao concluida:", len(dados), "item(ns)")
+          PY
+
+      - name: Salvar nova versao na branch do Pull Request
+        id: commit
+        env:
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "motorhome-em-pauta-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add noticias.json resumo-refazer.md
+          if [ -d imagens/noticias ]; then git add imagens/noticias; fi
+
+          if git diff --cached --quiet; then
+            echo "alterou=false" >> "$GITHUB_OUTPUT"
+            echo "Nenhuma alteracao foi produzida."
+            exit 0
+          fi
+
+          git commit -m "Refazer materia conforme orientacao editorial"
+          git push origin "HEAD:$HEAD_REF"
+          echo "alterou=true" >> "$GITHUB_OUTPUT"
+
+      - name: Comentar resultado no Pull Request
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          ALTEROU: ${{ steps.commit.outputs.alterou }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$ALTEROU" = "true" ] && [ -f resumo-refazer.md ]; then
+            {
+              cat resumo-refazer.md
+              echo
+              echo "Os arquivos foram atualizados. Revise novamente em **Files changed**."
+            } > comentario.md
+          else
+            cat > comentario.md <<'EOF'
+          Não foi possível produzir uma nova versão válida. Consulte a execução **Refazer matéria por comentário** em Actions.
+          EOF
+          fi
+          gh pr comment "$PR_NUMBER" --body-file comentario.md
+
+      - name: Guardar revisao como artefato
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: revisao-refeita-pr-${{ github.event.issue.number }}
+          path: |
+            orientacao-refazer.txt
+            resumo-refazer.md
+            noticias.json
+            imagens/noticias/
+          if-no-files-found: warn
+          retention-days: 7
