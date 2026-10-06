@@ -1,0 +1,18 @@
+MOTORHOME EM PAUTA - PACOTE FINAL
+
+Arquivos:
+- coletar_internacionais.py: coleta RSS/Atom e produz matérias jornalísticas com Groq.
+- fontes_internacionais.json: fontes internacionais configuráveis.
+- processar_publicacoes.py: ranking, seleção de 1 item e imagem Cloudflare.
+- publicar_pendentes.py: adiciona somente 1 item novo ao noticias.json.
+- .github/workflows/executar-coletor.yml: 3 execuções diárias, commit e e-mail.
+
+Necessita dos secrets:
+GROQ_API_KEY
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_API_TOKEN
+MAIL_USERNAME
+MAIL_PASSWORD
+
+Importante: mantenha no repositório os arquivos atuais coletor.py, noticias.json,
+site.js, materia.html, index.html e demais arquivos do site.

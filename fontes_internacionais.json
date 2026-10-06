@@ -1,0 +1,6 @@
+[
+  {"nome":"RV PRO","pais":"Estados Unidos","url":"https://rv-pro.com/feed/","ativo":true},
+  {"nome":"Caravan World","pais":"Austrália","url":"https://caravanworld.com.au/blogs/news.atom","ativo":true},
+  {"nome":"Van Clan","pais":"Reino Unido","url":"https://vanclan.co/feed/","ativo":true},
+  {"nome":"Camec","pais":"Austrália","url":"https://camec.com.au/blogs/news.atom","ativo":true}
+]
