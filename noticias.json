@@ -39,8 +39,10 @@
       ],
       "contexto_brasil": "Por ocorrer no Paraná e reunir empresas e público ligados ao turismo sobre rodas, a Expo Motorhome é uma pauta nacional prioritária para o Motorhome em Pauta."
     },
-    "imagem": "",
-    "imagem_alt": "Expo Motorhome 2026 em Pinhais, Paraná",
+  "imagem": "imagens/noticias/expo-motorhome-2026.jpg",
+"imagem_alt": "Vista da Expo Motorhome com veículos recreativos e estandes no pavilhão",
+"credito_imagem": "Foto: Expo Motorhome / divulgação",
+"fonte_imagem": "https://www.expomotorhome.com/galeria",
     "fontes_complementares": [
       {
         "titulo": "10ª Expo Motorhome - ingressos e horários",
