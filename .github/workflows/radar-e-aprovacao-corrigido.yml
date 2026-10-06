@@ -25,11 +25,19 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Configurar Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
       - name: Instalar dependencias
+        shell: bash
         run: |
-          python3 -m pip install \
-            groq \
-            googlenewsdecoder
+          set -euo pipefail
+
+          python3 -m pip install             --disable-pip-version-check             --upgrade             pip
+
+          python3 -m pip install             --disable-pip-version-check             groq             requests             beautifulsoup4             "selectolax==0.4.13"             "googlenewsdecoder==0.2.1"
 
       - name: Descobrir pautas em alta
         run: |
@@ -129,9 +137,11 @@ jobs:
             resultado-coletor.txt
             resultado-internacionais.txt
             resultado-selecao.txt
+            resultado-qualificacao-pautas.txt
             pautas-descobertas.json
             rascunhos-coletor.json
             rascunhos-internacionais.json
+            pendentes-conferencia.json
             pautas-selecionadas.json
             resumo-aprovacao.md
             email-aprovacao.txt
