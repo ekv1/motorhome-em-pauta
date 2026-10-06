@@ -117,17 +117,73 @@ jobs:
         run: python3 publicar_pendentes.py
 
       - name: Salvar publicacao no repositorio
+        id: salvar_publicacao
         if: ${{ github.event_name == 'schedule' || inputs.publicar_automaticamente }}
         run: |
           if git diff --quiet -- noticias.json; then
             echo "Nenhuma noticia nova para publicar."
+            echo "publicou=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          pendentes = json.loads(
+              Path("pendentes-conferencia.json").read_text(encoding="utf-8")
+          )
+
+          linhas = [
+              "Uma ou mais informações foram incluídas no Motorhome em Pauta.",
+              "",
+          ]
+
+          for numero, item in enumerate(pendentes, start=1):
+              linhas.extend([
+                  f"Item {numero}",
+                  f"Título: {item.get('titulo', '')}",
+                  f"Categoria: {item.get('categoria_sugerida', '')}",
+                  f"Data: {item.get('data', '')}",
+                  f"Fonte: {item.get('fonte', '')}",
+                  f"Resumo: {item.get('resumo', '')}",
+                  f"Link da fonte: {item.get('link', '')}",
+                  "",
+              ])
+
+          linhas.extend([
+              "A publicação foi realizada automaticamente pelo GitHub Actions.",
+              "Verifique o site e o repositório caso queira revisar o conteúdo.",
+          ])
+
+          Path("email-publicacao.txt").write_text(
+              "\n".join(linhas) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
           git config user.name "motorhome-em-pauta-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add noticias.json
           git commit -m "Publicar noticias coletadas automaticamente"
           git push origin HEAD:main
+
+          echo "publicou=true" >> "$GITHUB_OUTPUT"
+
+      - name: Enviar email sobre nova publicacao
+        if: ${{ steps.salvar_publicacao.outputs.publicou == 'true' }}
+        uses: dawidd6/action-send-mail@v6
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Motorhome em Pauta | Nova informação publicada"
+          to: "emerson.venarusso@dxc.com,emerson.venarusso@gmail.com"
+          from: "Motorhome em Pauta <${{ secrets.MAIL_USERNAME }}>"
+          body: file://email-publicacao.txt
+          priority: normal
 
       - name: Gerar previa internacional sem publicar
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.gerar_previa_internacional }}
@@ -170,6 +226,15 @@ jobs:
         with:
           name: resultado-publicacao
           path: resultado-publicacao.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Guardar comprovante do email
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: email-publicacao
+          path: email-publicacao.txt
           if-no-files-found: ignore
           retention-days: 7
 
