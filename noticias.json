@@ -1,5 +1,53 @@
 [
   {
+    "titulo": "Evento de Segurança de Reboque em Sydney celebra 15º aniversário da Bold TCRC",
+    "resumo": "Na Austrália, a Bold TCRC comemorou 15 anos com um dia aberto focado em segurança de reboque. O evento, em Sydney, alertou motoristas e proprietários de caravanas Snowy River e Newgen a verificarem a estrutura A-frame antes de viajar. A iniciativa reforça práticas seguras e pode servir de modelo para usuários brasileiros.",
+    "categoria_sugerida": "Eventos e feiras",
+    "slug": "evento-segurança-reboque-sydney-bold-tcrc-15-anos",
+    "corpo": {
+      "abertura": "Em um cenário de crescente interesse por viagens de caravanas, a Bold TCRC, fabricante australiana, organizou em Sydney um evento de segurança de reboque para celebrar seu 15º aniversário.",
+      "secoes": [
+        {
+          "subtitulo": "O que foi anunciado",
+          "paragrafos": [
+            "O dia aberto contou com demonstrações práticas de inspeção de A-frame, workshops sobre manutenção e sessões de perguntas e respostas com especialistas da Bold TCRC.",
+            "Participantes puderam testar equipamentos de segurança e receber orientações sobre como garantir a integridade estrutural antes de cada viagem."
+          ]
+        },
+        {
+          "subtitulo": "O que isso significa para o público brasileiro",
+          "paragrafos": [
+            "Embora a Bold TCRC não tenha anunciado presença no Brasil, a mensagem de atenção à estrutura A-frame é relevante para proprietários de caravanas similares, como Snowy River e Newgen, que podem ser importadas. A iniciativa destaca a importância de inspeções regulares para evitar acidentes e prolongar a vida útil do veículo."
+          ]
+        }
+      ],
+      "contexto_brasil": "No Brasil, o mercado de caravanas tem crescido, mas ainda há poucos eventos focados em segurança de reboque. A iniciativa australiana pode inspirar associações e fabricantes locais a promoverem campanhas de conscientização e a disponibilizarem guias de inspeção para motoristas brasileiros."
+    },
+    "data": "06/10/2026",
+    "fonte": "Caravan World",
+    "link": "https://caravanworld.com.au/blogs/news/towing-safety-event-sydney-bold-tcrc-15th-birthday-open-day",
+    "mercado": "Internacional",
+    "origem": "imprensa",
+    "pais_fonte": "Austrália",
+    "pontuacao_editorial": 100,
+    "criterios_selecao": [
+      "relação direta 30/30",
+      "utilidade 20/20",
+      "qualidade dos fatos 15/15",
+      "atualidade 12/15",
+      "valor editorial 10/10",
+      "fonte e rastreabilidade 5/5",
+      "diversidade 3/5",
+      "bônus evento +6"
+    ],
+    "imagem": "imagens/noticias/evento-segurança-reboque-sydney-bold-tcrc-15-anos.jpg",
+    "imagem_alt": "Imagem ilustrativa relacionada à matéria: Evento de Segurança de Reboque em Sydney celebra 15º aniversário da Bold TCRC",
+    "imagem_legenda": "Imagem gerada por inteligência artificial",
+    "imagem_credito": "Cloudflare Workers AI · FLUX.1 Schnell",
+    "imagem_origem": "gerada_por_ia",
+    "decisao_editorial": "aprovação automática"
+  },
+  {
     "titulo": "Apolo Trailer na Expo Rodantear",
     "categoria_sugerida": "Eventos e feiras",
     "data": "30/09/2026",
