@@ -54,6 +54,13 @@ jobs:
           test -s pautas-selecionadas.json
           test -s resumo-aprovacao.md
 
+      - name: Validar qualidade das cinco pautas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool pautas-selecionadas.json > /dev/null
+          python3 validar_pautas.py pautas-selecionadas.json
+
       - name: Preservar conteudo do e-mail antes do Pull Request
         shell: bash
         run: |
