@@ -1,0 +1,30 @@
+name: Validar publicação aprovada
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+permissions:
+  contents: read
+jobs:
+  validar:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'aprovacao/editorial')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validar noticias.json
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('noticias.json'); d=json.loads(p.read_text(encoding='utf-8'))
+          assert isinstance(d,list), 'noticias.json precisa ser uma lista'
+          links=set(); slugs=set()
+          for i,x in enumerate(d):
+              assert isinstance(x,dict), f'item {i} inválido'
+              for c in ('titulo','categoria_sugerida','data','resumo','fonte'):
+                  assert str(x.get(c,'')).strip(), f'item {i}: campo {c} ausente'
+              if x.get('link'):
+                  k=str(x['link']).rstrip('/').casefold(); assert k not in links, 'link duplicado'; links.add(k)
+              if x.get('slug'):
+                  assert x['slug'] not in slugs, 'slug duplicado'; slugs.add(x['slug'])
+          print(f'Validação concluída: {len(d)} publicação(ões)')
+          PY
