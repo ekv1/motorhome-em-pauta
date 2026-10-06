@@ -16,7 +16,7 @@ concurrency:
 jobs:
   preparar-opcoes:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Ler arquivos do repositorio
@@ -26,7 +26,13 @@ jobs:
           fetch-depth: 0
 
       - name: Instalar dependencias
-        run: python3 -m pip install groq
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check \
+            groq \
+            requests \
+            beautifulsoup4 \
+            googlenewsdecoder
 
       - name: Descobrir pautas em alta
         run: |
@@ -47,7 +53,31 @@ jobs:
           set -o pipefail
           python3 coletar_internacionais.py | tee resultado-internacionais.txt
 
-      - name: Selecionar 5 opcoes com prioridade nacional e eventos
+      - name: Verificar arquivos de entrada
+        shell: bash
+        run: |
+          set -euo pipefail
+          encontrados=0
+          for arquivo in \
+            pautas-descobertas.json \
+            rascunhos-coletor.json \
+            rascunhos-internacionais.json \
+            pendentes-conferencia.json
+          do
+            if [ -s "$arquivo" ]; then
+              echo "ENTRADA: $arquivo"
+              encontrados=$((encontrados + 1))
+            else
+              echo "AUSENTE OU VAZIO: $arquivo"
+            fi
+          done
+          if [ "$encontrados" -eq 0 ]; then
+            echo "ERRO: nenhum arquivo de coleta foi produzido."
+            exit 1
+          fi
+
+      - name: Selecionar 5 opcoes qualificadas
+        shell: bash
         run: |
           set -euo pipefail
           python3 selecionar_pautas.py | tee resultado-selecao.txt
@@ -126,9 +156,11 @@ jobs:
             resultado-coletor.txt
             resultado-internacionais.txt
             resultado-selecao.txt
+            resultado-qualificacao-pautas.txt
             pautas-descobertas.json
             rascunhos-coletor.json
             rascunhos-internacionais.json
+            pendentes-conferencia.json
             pautas-selecionadas.json
             resumo-aprovacao.md
             email-aprovacao.txt
