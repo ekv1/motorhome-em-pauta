@@ -1,129 +1,98 @@
 #!/usr/bin/env python3
-"""Processa o comando /escolher N e grava a pauta editorial escolhida."""
+"""Seleciona exatamente uma pauta aprovada pelo editor."""
 from __future__ import annotations
 
 import argparse
 import json
-import re
-import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
-COMANDO = re.compile(r"^\s*/escolher\s+([1-5])\s*$", re.IGNORECASE)
 
-
-def carregar_json(caminho: Path):
-    try:
-        return json.loads(caminho.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        raise SystemExit(f"ERRO: arquivo não encontrado: {caminho}")
-    except json.JSONDecodeError as erro:
-        raise SystemExit(f"ERRO: JSON inválido em {caminho}: {erro}")
-
-
-def extrair_opcao(comentario: str) -> int:
-    correspondencia = COMANDO.fullmatch(comentario or "")
-    if not correspondencia:
-        raise SystemExit("ERRO: use exatamente /escolher N, com N entre 1 e 5.")
-    return int(correspondencia.group(1))
-
-
-def localizar_pauta(dados, numero: int) -> dict:
-    if isinstance(dados, dict):
-        dados = dados.get("pautas") or dados.get("itens") or dados.get("opcoes") or []
+def carregar_lista(caminho: Path) -> list[dict]:
+    dados = json.loads(caminho.read_text(encoding="utf-8"))
     if not isinstance(dados, list):
-        raise SystemExit("ERRO: pautas-selecionadas.json deve conter uma lista.")
-
-    for indice, item in enumerate(dados, 1):
-        if not isinstance(item, dict):
-            continue
-        opcao = item.get("opcao", indice)
-        try:
-            opcao = int(opcao)
-        except (TypeError, ValueError):
-            continue
-        if opcao == numero:
-            return dict(item)
-
-    raise SystemExit(f"ERRO: opção {numero} não existe no arquivo de pautas.")
+        raise SystemExit("ERRO: o arquivo de pautas deve conter uma lista.")
+    return [item for item in dados if isinstance(item, dict)]
 
 
-def validar_pauta(pauta: dict) -> None:
-    obrigatorios = ("titulo", "resumo", "link", "fonte")
-    ausentes = [campo for campo in obrigatorios if not str(pauta.get(campo, "")).strip()]
+def texto(valor: object) -> str:
+    return valor.strip() if isinstance(valor, str) else ""
+
+
+def validar_pauta(pauta: dict, numero: int) -> None:
+    obrigatorios = ("titulo", "resumo", "fonte", "link", "categoria_sugerida")
+    ausentes = [campo for campo in obrigatorios if not texto(pauta.get(campo))]
     if ausentes:
-        raise SystemExit("ERRO: pauta escolhida sem campos obrigatórios: " + ", ".join(ausentes))
-    link = str(pauta["link"]).strip()
-    if not link.startswith("https://"):
-        raise SystemExit("ERRO: a pauta escolhida não possui link HTTPS válido.")
+        raise SystemExit(
+            f"ERRO: a opção {numero} não está pronta. Campos ausentes: "
+            + ", ".join(ausentes)
+        )
+    if not texto(pauta.get("link")).startswith("https://"):
+        raise SystemExit(f"ERRO: a opção {numero} não possui link HTTPS válido.")
+
+
+def criar_resumo(pauta: dict, numero: int) -> str:
+    complementares = pauta.get("fontes_complementares") or []
+    fontes = [f"- {texto(pauta.get('fonte'))}: {texto(pauta.get('link'))}"]
+    for fonte in complementares:
+        if isinstance(fonte, dict) and texto(fonte.get("url")):
+            fontes.append(
+                f"- {texto(fonte.get('titulo')) or texto(fonte.get('fonte')) or 'Fonte complementar'}: "
+                f"{texto(fonte.get('url'))}"
+            )
+    return "\n".join(
+        [
+            "# Pauta escolhida para produção editorial",
+            "",
+            f"- **Opção:** {numero}",
+            f"- **Título-base:** {texto(pauta.get('titulo'))}",
+            f"- **Categoria:** {texto(pauta.get('categoria_sugerida'))}",
+            f"- **Origem:** {texto(pauta.get('origem'))}",
+            f"- **Tipo:** {texto(pauta.get('tipo'))}",
+            f"- **Pontuação:** {pauta.get('pontuacao_selecao', '')}",
+            "",
+            "## Resumo da pauta",
+            texto(pauta.get("resumo")),
+            "",
+            "## Fontes disponíveis",
+            *fontes,
+            "",
+            "A reportagem completa ainda será gerada, validada e apresentada em Pull Request antes da publicação.",
+            "",
+        ]
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comentario", required=True)
-    parser.add_argument("--arquivo", default="pautas-selecionadas.json")
-    parser.add_argument("--saida", default="pauta-escolhida.json")
-    parser.add_argument("--resumo", default="resumo-pauta-escolhida.md")
-    parser.add_argument("--pr", type=int, required=True)
-    parser.add_argument("--autor", required=True)
+    parser.add_argument("--input", default="pautas-selecionadas.json")
+    parser.add_argument("--option", type=int, required=True)
+    parser.add_argument("--output", default="pauta-escolhida.json")
+    parser.add_argument("--summary", default="resumo-pauta-escolhida.md")
     args = parser.parse_args()
 
-    numero = extrair_opcao(args.comentario)
-    pauta = localizar_pauta(carregar_json(Path(args.arquivo)), numero)
-    validar_pauta(pauta)
+    entrada = Path(args.input)
+    if not entrada.is_file():
+        raise SystemExit(f"ERRO: arquivo não encontrado: {entrada}")
 
-    registro = {
-        "status": "APROVADA_PARA_PRODUCAO",
-        "opcao": numero,
-        "pull_request_selecao": args.pr,
-        "aprovada_por": args.autor,
-        "aprovada_em_utc": datetime.now(timezone.utc).isoformat(),
-        "pauta": pauta,
-    }
+    pautas = carregar_lista(entrada)
+    if args.option < 1 or args.option > len(pautas):
+        raise SystemExit(
+            f"ERRO: opção {args.option} inválida. Existem {len(pautas)} opções."
+        )
 
-    Path(args.saida).write_text(
-        json.dumps(registro, ensure_ascii=False, indent=2) + "\n",
+    escolhida = dict(pautas[args.option - 1])
+    validar_pauta(escolhida, args.option)
+    escolhida["opcao_escolhida"] = args.option
+    escolhida["status_editorial"] = "escolhida_para_producao"
+
+    Path(args.output).write_text(
+        json.dumps([escolhida], ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-
-    fontes = pauta.get("fontes_complementares") or []
-    linhas = [
-        "# Pauta aprovada para produção editorial",
-        "",
-        f"- **Opção:** {numero}",
-        f"- **Título:** {pauta['titulo']}",
-        f"- **Fonte principal:** {pauta['fonte']}",
-        f"- **Link:** {pauta['link']}",
-        f"- **Categoria:** {pauta.get('categoria_sugerida', 'Não informada')}",
-        f"- **Origem:** {pauta.get('origem', 'Não informada')}",
-        f"- **Aprovada por:** {args.autor}",
-        f"- **PR de seleção:** #{args.pr}",
-        "",
-        "## Resumo da pauta",
-        "",
-        str(pauta["resumo"]).strip(),
-        "",
-        "## Fontes complementares",
-        "",
-    ]
-    if fontes:
-        for fonte in fontes:
-            if isinstance(fonte, dict):
-                linhas.append(f"- [{fonte.get('titulo', 'Fonte')}]({fonte.get('url', '')})")
-    else:
-        linhas.append("- Nenhuma fonte complementar registrada.")
-
-    linhas += [
-        "",
-        "## Próxima etapa",
-        "",
-        "Produzir a matéria completa, validar conteúdo e abrir um Pull Request editorial separado.",
-        "",
-        "> Este Pull Request registra a aprovação da pauta e não publica conteúdo diretamente.",
-    ]
-    Path(args.resumo).write_text("\n".join(linhas) + "\n", encoding="utf-8")
-    print(f"OPCAO_ESCOLHIDA={numero}")
-    print(f"TITULO_ESCOLHIDO={pauta['titulo']}")
+    Path(args.summary).write_text(
+        criar_resumo(escolhida, args.option), encoding="utf-8"
+    )
+    print(f"Opção {args.option} selecionada: {texto(escolhida.get('titulo'))}")
 
 
 if __name__ == "__main__":
