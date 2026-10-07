@@ -1,0 +1,252 @@
+name: Aprovar pauta por comentario
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: escolher-pauta-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  escolher:
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/escolher')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Validar autor e comando
+        id: validar
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const body = context.payload.comment.body.trim();
+            const match = body.match(/^\/escolher\s+([1-5])$/i);
+            if (!match) {
+              core.setFailed('Use exatamente /escolher N, com N entre 1 e 5.');
+              return;
+            }
+
+            const association = context.payload.comment.author_association;
+            const allowed = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            if (!allowed.includes(association)) {
+              core.setFailed(`Autor sem permissão editorial: ${association}`);
+              return;
+            }
+
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            if (pr.data.state !== 'open') {
+              core.setFailed('O Pull Request de seleção não está aberto.');
+              return;
+            }
+
+            const labels = pr.data.labels.map(label => label.name);
+            if (!labels.includes('selecao-de-pauta')) {
+              core.setFailed('Este Pull Request não é uma seleção de pauta.');
+              return;
+            }
+
+            core.setOutput('opcao', match[1]);
+            core.setOutput('head_sha', pr.data.head.sha);
+            core.setOutput('head_ref', pr.data.head.ref);
+            core.setOutput('head_repo', pr.data.head.repo.full_name);
+            core.setOutput('autor', context.payload.comment.user.login);
+
+      - name: Reagir ao comando recebido
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes',
+            });
+
+      - name: Baixar branch do Pull Request de seleção
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.validar.outputs.head_sha }}
+          fetch-depth: 0
+
+      - name: Configurar Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Confirmar arquivo de pautas
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s pautas-selecionadas.json
+          python3 -m json.tool pautas-selecionadas.json > /dev/null
+
+      - name: Processar escolha editorial
+        id: processar
+        env:
+          COMENTARIO: ${{ github.event.comment.body }}
+          PR_NUMERO: ${{ github.event.issue.number }}
+          AUTOR: ${{ steps.validar.outputs.autor }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 escolher_pauta.py \
+            --comentario "$COMENTARIO" \
+            --pr "$PR_NUMERO" \
+            --autor "$AUTOR" \
+            | tee resultado-escolha.txt
+
+          opcao="$(sed -n 's/^OPCAO_ESCOLHIDA=//p' resultado-escolha.txt | tail -1)"
+          titulo="$(sed -n 's/^TITULO_ESCOLHIDO=//p' resultado-escolha.txt | tail -1)"
+          test -n "$opcao"
+          test -n "$titulo"
+          echo "opcao=$opcao" >> "$GITHUB_OUTPUT"
+          echo "titulo=$titulo" >> "$GITHUB_OUTPUT"
+
+      - name: Preparar branch de produção
+        id: branch
+        env:
+          PR_NUMERO: ${{ github.event.issue.number }}
+          OPCAO: ${{ steps.processar.outputs.opcao }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="editorial/pauta-${PR_NUMERO}-opcao-${OPCAO}"
+          echo "nome=$branch" >> "$GITHUB_OUTPUT"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp pauta-escolhida.json /tmp/pauta-escolhida.json
+          cp resumo-pauta-escolhida.md /tmp/resumo-pauta-escolhida.md
+
+          git fetch origin main
+          git switch --force-create "$branch" origin/main
+
+          cp /tmp/pauta-escolhida.json pauta-escolhida.json
+          cp /tmp/resumo-pauta-escolhida.md resumo-pauta-escolhida.md
+          git add pauta-escolhida.json resumo-pauta-escolhida.md
+          git commit -m "Registrar pauta ${OPCAO} aprovada no PR ${PR_NUMERO}"
+          git push --force-with-lease origin "$branch"
+
+      - name: Criar ou localizar Pull Request editorial
+        id: pr_editorial
+        uses: actions/github-script@v8
+        env:
+          BRANCH: ${{ steps.branch.outputs.nome }}
+          OPCAO: ${{ steps.processar.outputs.opcao }}
+          TITULO: ${{ steps.processar.outputs.titulo }}
+        with:
+          script: |
+            const existing = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${process.env.BRANCH}`,
+              base: 'main',
+            });
+
+            let pull;
+            if (existing.data.length > 0) {
+              pull = existing.data[0];
+            } else {
+              pull = (await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: process.env.BRANCH,
+                base: 'main',
+                title: `Pauta ${process.env.OPCAO} aprovada para produção editorial`,
+                body: [
+                  '## Aprovação registrada',
+                  '',
+                  `**Pauta:** ${process.env.TITULO}`,
+                  '',
+                  `**Origem da escolha:** #${context.issue.number}`,
+                  '',
+                  'Este Pull Request registra a pauta aprovada. A matéria completa será adicionada nesta branch pelo gerador editorial.',
+                  '',
+                  '**Não faça merge enquanto a matéria completa e os checks editoriais não estiverem prontos.**',
+                ].join('\n'),
+              })).data;
+
+              const labels = [
+                {name: 'editorial', color: '1d76db'},
+                {name: 'pauta-aprovada', color: '0e8a16'},
+                {name: 'aguardando-materia', color: 'fbca04'},
+              ];
+              for (const label of labels) {
+                try {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label.name,
+                    color: label.color,
+                  });
+                } catch (error) {
+                  if (error.status !== 422) throw error;
+                }
+              }
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pull.number,
+                labels: labels.map(label => label.name),
+              });
+            }
+
+            core.setOutput('numero', pull.number);
+            core.setOutput('url', pull.html_url);
+
+      - name: Confirmar escolha no Pull Request original
+        uses: actions/github-script@v8
+        env:
+          OPCAO: ${{ steps.processar.outputs.opcao }}
+          TITULO: ${{ steps.processar.outputs.titulo }}
+          PR_EDITORIAL: ${{ steps.pr_editorial.outputs.numero }}
+          URL_EDITORIAL: ${{ steps.pr_editorial.outputs.url }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                `✅ **Opção ${process.env.OPCAO} aprovada.**`,
+                '',
+                `**Pauta:** ${process.env.TITULO}`,
+                '',
+                `A aprovação foi registrada no Pull Request editorial #${process.env.PR_EDITORIAL}: ${process.env.URL_EDITORIAL}`,
+                '',
+                'Este Pull Request de seleção não deve ser mesclado.',
+              ].join('\n'),
+            });
+
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: '+1',
+            });
+
+      - name: Guardar comprovantes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aprovacao-pauta-${{ github.event.issue.number }}
+          path: |
+            pauta-escolhida.json
+            resumo-pauta-escolhida.md
+            resultado-escolha.txt
+          if-no-files-found: ignore
+          retention-days: 7
