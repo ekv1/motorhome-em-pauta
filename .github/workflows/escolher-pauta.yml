@@ -1,8 +1,9 @@
-name: Aprovar pauta por comentario
+name: Aprovar pauta e gerar reportagem completa
 
 on:
   issue_comment:
-    types: [created]
+    types:
+      - created
 
 permissions:
   contents: write
@@ -10,272 +11,239 @@ permissions:
   issues: write
 
 concurrency:
-  group: escolher-pauta-${{ github.event.issue.number }}
+  group: escolher-pauta-pr-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
-  escolher:
+  escolher-e-gerar:
     if: >-
       github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '/escolher')
+      startsWith(github.event.comment.body, '/escolher') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
-      - name: Validar autor e comando
-        id: validar
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const body = context.payload.comment.body.trim();
-            const match = body.match(/^\/escolher\s+([1-5])$/i);
-            if (!match) {
-              core.setFailed('Use exatamente /escolher N, com N entre 1 e 5.');
-              return;
-            }
-
-            const association = context.payload.comment.author_association;
-            const allowed = ['OWNER', 'MEMBER', 'COLLABORATOR'];
-            if (!allowed.includes(association)) {
-              core.setFailed(`Autor sem permissão editorial: ${association}`);
-              return;
-            }
-
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-
-            if (pr.data.state !== 'open') {
-              core.setFailed('O Pull Request de seleção não está aberto.');
-              return;
-            }
-
-            const labels = pr.data.labels.map(label => label.name);
-            if (!labels.includes('selecao-de-pauta')) {
-              core.setFailed('Este Pull Request não é uma seleção de pauta.');
-              return;
-            }
-
-            core.setOutput('opcao', match[1]);
-            core.setOutput('head_sha', pr.data.head.sha);
-            core.setOutput('head_ref', pr.data.head.ref);
-            core.setOutput('head_repo', pr.data.head.repo.full_name);
-            core.setOutput('autor', context.payload.comment.user.login);
-
-      - name: Reagir ao comando recebido
-        uses: actions/github-script@v8
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'eyes',
-            });
-
-      - name: Baixar branch do Pull Request de seleção
+      - name: Ler codigo da branch main
         uses: actions/checkout@v6
         with:
-          ref: ${{ steps.validar.outputs.head_sha }}
+          ref: main
           fetch-depth: 0
-
-      - name: Carregar processador da branch main
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          rm -f escolher_pauta.py
-
-          git fetch origin main
-
-          if ! git cat-file -e origin/main:escolher_pauta.py; then
-            echo "ERRO: escolher_pauta.py não existe na branch main."
-            exit 1
-          fi
-
-          git show origin/main:escolher_pauta.py > escolher_pauta.py
-
-          if [ ! -s escolher_pauta.py ]; then
-            echo "ERRO: escolher_pauta.py foi carregado vazio."
-            exit 1
-          fi
-
-          python3 -m py_compile escolher_pauta.py
-
-          echo "OK: escolher_pauta.py carregado da branch main."
+          token: ${{ github.token }}
 
       - name: Configurar Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
-      - name: Confirmar arquivo de pautas
+      - name: Instalar dependencias
         shell: bash
         run: |
           set -euo pipefail
+          python3 -m pip install --disable-pip-version-check groq beautifulsoup4
+
+      - name: Validar Pull Request e comando
+        id: contexto
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$COMMENT_BODY" =~ ^/escolher[[:space:]]+([1-5])[[:space:]]*$ ]]; then
+            echo "ERRO: use somente /escolher N, com N entre 1 e 5."
+            exit 1
+          fi
+
+          OPCAO="${BASH_REMATCH[1]}"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > /tmp/pr.json
+
+          HEAD_SHA="$(jq -r '.head.sha' /tmp/pr.json)"
+          HEAD_REF="$(jq -r '.head.ref' /tmp/pr.json)"
+          BASE_REF="$(jq -r '.base.ref' /tmp/pr.json)"
+          HEAD_REPO="$(jq -r '.head.repo.full_name' /tmp/pr.json)"
+
+          if [ "$BASE_REF" != "main" ] || [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
+            echo "ERRO: Pull Request de seleção inválido."
+            exit 1
+          fi
+
+          ROTULOS="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" --jq '.[].name')"
+          if ! grep -qx "selecao-de-pauta" <<< "$ROTULOS"; then
+            echo "ERRO: este Pull Request não possui o rótulo selecao-de-pauta."
+            exit 1
+          fi
+
+          echo "opcao=$OPCAO" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Reagir ao comando recebido
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID/reactions" \
+            -H "Accept: application/vnd.github+json" \
+            -f content='eyes'
+
+      - name: Baixar cinco pautas do Pull Request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.contexto.outputs.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            "repos/$GITHUB_REPOSITORY/contents/pautas-selecionadas.json?ref=$HEAD_SHA" \
+            --jq '.content' \
+            | tr -d '\n' \
+            | base64 --decode \
+            > pautas-selecionadas.json
           test -s pautas-selecionadas.json
           python3 -m json.tool pautas-selecionadas.json > /dev/null
 
-      - name: Processar escolha editorial
-        id: processar
+      - name: Selecionar pauta aprovada
         env:
-          COMENTARIO: ${{ github.event.comment.body }}
-          PR_NUMERO: ${{ github.event.issue.number }}
-          AUTOR: ${{ steps.validar.outputs.autor }}
+          OPCAO: ${{ steps.contexto.outputs.opcao }}
         shell: bash
         run: |
           set -euo pipefail
           python3 escolher_pauta.py \
-            --comentario "$COMENTARIO" \
-            --pr "$PR_NUMERO" \
-            --autor "$AUTOR" \
-            | tee resultado-escolha.txt
+            --input pautas-selecionadas.json \
+            --option "$OPCAO" \
+            --output pauta-escolhida.json \
+            --summary resumo-pauta-escolhida.md
 
-          opcao="$(sed -n 's/^OPCAO_ESCOLHIDA=//p' resultado-escolha.txt | tail -1)"
-          titulo="$(sed -n 's/^TITULO_ESCOLHIDO=//p' resultado-escolha.txt | tail -1)"
-          test -n "$opcao"
-          test -n "$titulo"
-          echo "opcao=$opcao" >> "$GITHUB_OUTPUT"
-          echo "titulo=$titulo" >> "$GITHUB_OUTPUT"
-
-      - name: Preparar branch de produção
-        id: branch
+      - name: Gerar reportagem completa e imagem
         env:
-          PR_NUMERO: ${{ github.event.issue.number }}
-          OPCAO: ${{ steps.processar.outputs.opcao }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: openai/gpt-oss-20b
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          branch="editorial/pauta-${PR_NUMERO}-opcao-${OPCAO}"
-          echo "nome=$branch" >> "$GITHUB_OUTPUT"
+          python3 gerar_materia_escolhida.py \
+            --input pauta-escolhida.json \
+            --news noticias.json \
+            --summary resumo-aprovacao.md
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Validar reportagem completa
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool noticias.json > /dev/null
+          python3 validar_materias.py noticias.json
+
+      - name: Preparar branch editorial
+        id: branch
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          OPCAO: ${{ steps.contexto.outputs.opcao }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="aprovacao/materia-pr${PR_NUMBER}-opcao${OPCAO}"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
           cp pauta-escolhida.json /tmp/pauta-escolhida.json
           cp resumo-pauta-escolhida.md /tmp/resumo-pauta-escolhida.md
-
-          # O processador foi carregado temporariamente da main.
-          # Remova-o antes da troca de branch para evitar conflito.
-          rm -f escolher_pauta.py
+          cp resumo-aprovacao.md /tmp/resumo-aprovacao.md
+          cp noticias.json /tmp/noticias.json
+          cp resultado-geracao-materia.txt /tmp/resultado-geracao-materia.txt
+          mkdir -p /tmp/imagens-noticias
+          if [ -d imagens/noticias ]; then
+            cp -a imagens/noticias/. /tmp/imagens-noticias/ || true
+          fi
 
           git fetch origin main
-          git switch --force-create "$branch" origin/main
+          git switch --force-create "$BRANCH" origin/main
 
           cp /tmp/pauta-escolhida.json pauta-escolhida.json
           cp /tmp/resumo-pauta-escolhida.md resumo-pauta-escolhida.md
-          git add pauta-escolhida.json resumo-pauta-escolhida.md
-          git commit -m "Registrar pauta ${OPCAO} aprovada no PR ${PR_NUMERO}"
-          git push --force-with-lease origin "$branch"
+          cp /tmp/resumo-aprovacao.md resumo-aprovacao.md
+          cp /tmp/noticias.json noticias.json
+          cp /tmp/resultado-geracao-materia.txt resultado-geracao-materia.txt
+          mkdir -p imagens/noticias
+          cp -a /tmp/imagens-noticias/. imagens/noticias/ || true
+
+          git config user.name "motorhome-em-pauta-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pauta-escolhida.json resumo-pauta-escolhida.md resumo-aprovacao.md noticias.json resultado-geracao-materia.txt imagens/noticias
+
+          if git diff --cached --quiet; then
+            echo "ERRO: nenhuma alteração editorial foi produzida."
+            exit 1
+          fi
+
+          git commit -m "Gerar reportagem completa da pauta ${OPCAO}"
+          git push --force-with-lease origin "HEAD:$BRANCH"
 
       - name: Criar ou localizar Pull Request editorial
         id: pr_editorial
-        uses: actions/github-script@v8
         env:
-          BRANCH: ${{ steps.branch.outputs.nome }}
-          OPCAO: ${{ steps.processar.outputs.opcao }}
-          TITULO: ${{ steps.processar.outputs.titulo }}
-        with:
-          script: |
-            const existing = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              head: `${context.repo.owner}:${process.env.BRANCH}`,
-              base: 'main',
-            });
-
-            let pull;
-            if (existing.data.length > 0) {
-              pull = existing.data[0];
-            } else {
-              pull = (await github.rest.pulls.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head: process.env.BRANCH,
-                base: 'main',
-                title: `Pauta ${process.env.OPCAO} aprovada para produção editorial`,
-                body: [
-                  '## Aprovação registrada',
-                  '',
-                  `**Pauta:** ${process.env.TITULO}`,
-                  '',
-                  `**Origem da escolha:** #${context.issue.number}`,
-                  '',
-                  'Este Pull Request registra a pauta aprovada. A matéria completa será adicionada nesta branch pelo gerador editorial.',
-                  '',
-                  '**Não faça merge enquanto a matéria completa e os checks editoriais não estiverem prontos.**',
-                ].join('\n'),
-              })).data;
-
-              const labels = [
-                {name: 'editorial', color: '1d76db'},
-                {name: 'pauta-aprovada', color: '0e8a16'},
-                {name: 'aguardando-materia', color: 'fbca04'},
-              ];
-              for (const label of labels) {
-                try {
-                  await github.rest.issues.createLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    name: label.name,
-                    color: label.color,
-                  });
-                } catch (error) {
-                  if (error.status !== 422) throw error;
-                }
-              }
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pull.number,
-                labels: labels.map(label => label.name),
-              });
-            }
-
-            core.setOutput('numero', pull.number);
-            core.setOutput('url', pull.html_url);
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+          OPCAO: ${{ steps.contexto.outputs.opcao }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(gh pr list --head "$BRANCH" --base main --state open --json url --jq '.[0].url // empty')"
+          if [ -z "$URL" ]; then
+            URL="$(gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Reportagem completa da pauta ${OPCAO}" \
+              --body-file resumo-aprovacao.md)"
+          fi
+          gh pr edit "$URL" --add-label editorial --add-label aguardando-aprovacao || true
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Confirmar escolha no Pull Request original
-        uses: actions/github-script@v8
         env:
-          OPCAO: ${{ steps.processar.outputs.opcao }}
-          TITULO: ${{ steps.processar.outputs.titulo }}
-          PR_EDITORIAL: ${{ steps.pr_editorial.outputs.numero }}
-          URL_EDITORIAL: ${{ steps.pr_editorial.outputs.url }}
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                `✅ **Opção ${process.env.OPCAO} aprovada.**`,
-                '',
-                `**Pauta:** ${process.env.TITULO}`,
-                '',
-                `A aprovação foi registrada no Pull Request editorial #${process.env.PR_EDITORIAL}: ${process.env.URL_EDITORIAL}`,
-                '',
-                'Este Pull Request de seleção não deve ser mesclado.',
-              ].join('\n'),
-            });
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          OPCAO: ${{ steps.contexto.outputs.opcao }}
+          PR_URL: ${{ steps.pr_editorial.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID/reactions" \
+            -H "Accept: application/vnd.github+json" \
+            -f content='+1' || true
 
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: '+1',
-            });
+          cat > /tmp/comentario.md <<EOF
+          ✅ Opção ${OPCAO} reconhecida e transformada em reportagem completa.
+
+          A reportagem, a imagem e a validação editorial estão neste Pull Request:
+          ${PR_URL}
+
+          Revise o novo Pull Request. Use \`/refazer sua orientação\` para ajustes ou faça o merge para publicar.
+
+          Este Pull Request de seleção não deve ser mesclado.
+          EOF
+
+          gh pr comment "$PR_NUMBER" --body-file /tmp/comentario.md
 
       - name: Guardar comprovantes
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aprovacao-pauta-${{ github.event.issue.number }}
+          name: producao-editorial-pr-${{ github.event.issue.number }}-opcao-${{ steps.contexto.outputs.opcao }}
           path: |
+            pautas-selecionadas.json
             pauta-escolhida.json
             resumo-pauta-escolhida.md
-            resultado-escolha.txt
+            resumo-aprovacao.md
+            resultado-geracao-materia.txt
+            noticias.json
+            imagens/noticias/
           if-no-files-found: ignore
           retention-days: 7
