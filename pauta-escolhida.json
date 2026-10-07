@@ -1,0 +1,22 @@
+{
+  "status": "APROVADA_PARA_PRODUCAO",
+  "opcao": 2,
+  "pull_request_selecao": 2,
+  "aprovada_por": "ekv1",
+  "aprovada_em_utc": "2026-10-07T00:45:32.424090+00:00",
+  "pauta": {
+    "titulo": "Novo motorhome brasileiro tem energia solar e dispensa o uso de gás",
+    "resumo": "O novo motorhome brasileiro Estrella Mobil Rigel, na versão Black Series, conta com tecnologia para autonomia de energia, água e gás",
+    "fonte": "GARAGEM 360",
+    "link": "https://garagem360.com.br/novo-motorhome-brasileiro-energia-solar-uso-gas/",
+    "data": "2023-01-15T08:00:00+00:00",
+    "categoria_sugerida": "Equipamentos e tecnologia",
+    "origem": "Brasil",
+    "tipo": "Equipamento",
+    "pontuacao_original": 0.0,
+    "pontuacao_selecao": 18.0,
+    "arquivo_origem": "pautas-descobertas.json",
+    "fontes_complementares": [],
+    "opcao": 2
+  }
+}
